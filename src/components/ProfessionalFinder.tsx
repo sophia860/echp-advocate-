@@ -10,11 +10,16 @@ import {
   Clock,
   Filter,
   Trash2,
-  Phone
+  Phone,
+  Sparkles,
+  Copy,
+  Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 import Modal from './ui/Modal';
+import { askNavigator } from '../lib/gemini';
 
 interface Prof {
   id: string;
@@ -25,6 +30,10 @@ interface Prof {
 export default function ProfessionalFinder({ onToast }: { onToast: (msg: string) => void }) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [contactingProf, setContactingProf] = useState<{ name: string; role: string } | null>(null);
+  const [contactDraft, setContactDraft] = useState('');
+  const [isGeneratingContact, setIsGeneratingContact] = useState(false);
   const [newProf, setNewProf] = useState({ name: '', role: '' });
   const [team, setTeam] = useState<Prof[]>([
     { id: '1', name: 'Sarah Chen', role: 'Main Advocate' },
@@ -44,6 +53,17 @@ export default function ProfessionalFinder({ onToast }: { onToast: (msg: string)
   const removeProf = (id: string) => {
     setTeam(team.filter(p => p.id !== id));
     onToast("Professional removed from team");
+  };
+
+  const handleRequestContact = async (prof: { name: string, role: string }) => {
+    setContactingProf(prof);
+    setIsContactModalOpen(true);
+    setIsGeneratingContact(true);
+    setContactDraft('');
+    
+    const draft = await askNavigator(`Draft a professional initial contact email to ${prof.name}, who is an ${prof.role}. I am looking for a professional report for my child Maya's EHCP process. Briefly explain we are at the Draft Plan stage and need quantitative evidence for Section F. Tone: polite, professional, and clear.`);
+    setContactDraft(draft);
+    setIsGeneratingContact(false);
   };
 
   const professionals = [
@@ -128,6 +148,7 @@ export default function ProfessionalFinder({ onToast }: { onToast: (msg: string)
               <motion.div 
                 whileHover={{ y: -2 }}
                 key={i} 
+                onClick={() => handleRequestContact(prof)}
                 className="bg-white p-6 rounded-[2.5rem] border border-[#EADDD7] shadow-sm flex flex-col md:flex-row gap-6 hover:border-brand-300 transition-all cursor-pointer group"
               >
                 <div className="w-24 h-24 bg-brand-50 rounded-3xl flex items-center justify-center shrink-0 overflow-hidden border border-brand-100">
@@ -172,7 +193,6 @@ export default function ProfessionalFinder({ onToast }: { onToast: (msg: string)
                       <p className="font-bold text-slate-900">{prof.price}</p>
                    </div>
                    <button 
-                     onClick={() => onToast(`✓ Contact request sent to ${prof.name}`)}
                      className="mt-4 px-4 py-2.5 bg-brand-900 text-white rounded-xl text-xs font-bold hover:bg-brand-800 transition-all flex items-center gap-2 shadow-lg shadow-brand-900/10"
                    >
                       Request Contact <ChevronRight size={14} />
@@ -183,6 +203,48 @@ export default function ProfessionalFinder({ onToast }: { onToast: (msg: string)
           </div>
         </div>
       </div>
+
+      <Modal
+        isOpen={isContactModalOpen}
+        onClose={() => setIsContactModalOpen(false)}
+        title={`Request Contact: ${contactingProf?.name}`}
+      >
+        <div className="space-y-6">
+          <div className="p-4 bg-brand-50 border border-brand-100 rounded-2xl flex gap-3">
+            <Sparkles size={20} className="text-brand-600 shrink-0" />
+            <p className="text-xs text-brand-800 leading-relaxed font-medium">
+              We've drafted a professional letter to help you get started with {contactingProf?.name}.
+            </p>
+          </div>
+
+          <div className={cn(
+            "prose prose-sm p-5 bg-slate-50 border border-slate-100 rounded-2xl min-h-[200px] max-h-[300px] overflow-y-auto custom-scrollbar relative",
+            isGeneratingContact && "flex items-center justify-center"
+          )}>
+            {isGeneratingContact ? (
+              <div className="flex flex-col items-center gap-2 text-brand-600">
+                <Loader2 size={32} className="animate-spin" />
+                <span className="text-xs font-bold">Drafting email...</span>
+              </div>
+            ) : (
+              <ReactMarkdown>{contactDraft}</ReactMarkdown>
+            )}
+          </div>
+
+          <div className="flex gap-3">
+             <button 
+              onClick={() => {
+                navigator.clipboard.writeText(contactDraft);
+                onToast("✓ Draft copied to clipboard");
+              }}
+              disabled={isGeneratingContact || !contactDraft}
+              className="flex-1 py-4 bg-brand-900 text-white rounded-2xl font-bold hover:bg-brand-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <Copy size={18} /> Copy Email Draft
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         isOpen={isAddModalOpen}

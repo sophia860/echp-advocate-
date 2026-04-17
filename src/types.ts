@@ -15,6 +15,8 @@ export interface CaseDoc {
   status: 'reviewed' | 'pending' | 'flagged';
   analysis?: string;
   flagsCount?: number;
+  content?: string; // actual document text, if available
+  structuredData?: Record<string, string>; // extracted fields from Flowr
 }
 
 export interface Communication {

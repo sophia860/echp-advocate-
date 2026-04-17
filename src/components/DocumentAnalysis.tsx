@@ -9,13 +9,15 @@ import {
   Loader2,
   Sparkles,
   Info,
-  ArrowRight
+  ArrowRight,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 import type { Case, CaseDoc } from '../types';
 import { analyzeDocument, askNavigator } from '../lib/gemini';
+import { extractTextFromFile, extractStructuredData } from '../lib/flowr';
 import Modal from './ui/Modal';
 import AiButton from './ui/AiButton';
 
@@ -38,35 +40,83 @@ export default function DocumentAnalysis({
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [newDocInfo, setNewDocInfo] = useState({ name: '', type: 'Draft Plan' });
   const [uploadedFileContent, setUploadedFileContent] = useState('');
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractionError, setExtractionError] = useState<string | null>(null);
 
   const handleAnalyze = async (doc: CaseDoc) => {
     setSelectedDoc(doc);
     setIsAnalyzing(true);
     setAnalysisResult(null);
+
+    const content = doc.content || `Draft EHCP for Maya. Section F provision: "Maya will have access to support in the classroom as appropriate to her needs. The school will provide some sensory equipment where possible."`;
     
-    // In a real app, we'd fetch actual doc content. Simulating here for the existing ones.
-    const content = doc.id.length > 5 ? uploadedFileContent : `Draft EHCP for Maya. Section F provision: "Maya will have access to support in the classroom as appropriate to her needs. The school will provide some sensory equipment where possible."`;
-    const result = await analyzeDocument(content, doc.type);
-    
+    // Run Gemini analysis and Flowr extraction in parallel
+    const [result] = await Promise.all([
+      analyzeDocument(content, doc.type),
+      // Only run structured extraction if the doc has real uploaded content
+      doc.content
+        ? extractStructuredData(btoa(doc.content), doc.name)
+            .then(fields => {
+              if (Object.keys(fields).length > 0) {
+                // Update the doc with structured data
+                const updatedDocs = appCase.docs.map(d =>
+                  d.id === doc.id ? { ...d, structuredData: fields } : d
+                );
+                onUpdateDocs(updatedDocs);
+              }
+            })
+            .catch(() => {}) // silent fail â€” structured extraction is a bonus
+        : Promise.resolve(),
+    ]);
+
     setAnalysisResult(result);
     setIsAnalyzing(false);
+
+    // Store analysis result back on the doc
+    if (result) {
+      const updatedDocs = appCase.docs.map(d => d.id === doc.id ? { ...d, analysis: result, status: 'reviewed' as const } : d);
+      onUpdateDocs(updatedDocs);
+    }
   };
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setUploadedFileContent(event.target?.result as string);
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    const supported = ['txt', 'pdf', 'doc', 'docx'];
+
+    if (!supported.includes(extension || '')) {
+      setExtractionError('Unsupported file type. Please upload a PDF, Word (.docx), or text (.txt) file.');
+      return;
+    }
+
+    setIsExtracting(true);
+    setExtractionError(null);
+
+    try {
+      const text = await extractTextFromFile(file);
+
+      if (!text || text.trim().length === 0) {
+        setExtractionError('No text could be extracted from this file. It may be a scanned image â€” please try a text-based PDF.');
+        setIsExtracting(false);
+        return;
+      }
+
+      setUploadedFileContent(text);
       setNewDocInfo(prev => ({ ...prev, name: file.name }));
       setIsUploadModalOpen(true);
-    };
-    reader.readAsText(file);
+    } catch (err) {
+      setExtractionError('There was a problem reading this file. Please try again or use a .txt file.');
+    } finally {
+      setIsExtracting(false);
+      // Reset the input so the same file can be re-uploaded if needed
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const confirmUpload = () => {
@@ -75,7 +125,8 @@ export default function DocumentAnalysis({
       name: newDocInfo.name,
       type: newDocInfo.type as any,
       uploadDate: 'Today',
-      status: 'reviewed'
+      status: 'reviewed',
+      content: uploadedFileContent
     };
     onUpdateDocs([newDoc, ...appCase.docs]);
     setIsUploadModalOpen(false);
@@ -89,6 +140,12 @@ export default function DocumentAnalysis({
     const draft = await askNavigator(prompt);
     setDraftResponse(draft);
     setIsDraftingResponse(false);
+  };
+
+  const statusConfig = {
+    flagged: { label: 'Needs Review', color: 'bg-amber-50 text-amber-700 border-amber-200' },
+    reviewed: { label: 'Reviewed', color: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
+    pending: { label: 'Pending', color: 'bg-slate-50 text-slate-500 border-slate-200' },
   };
 
   return (
@@ -106,11 +163,41 @@ export default function DocumentAnalysis({
           <h2 className="text-2xl font-bold font-display italic tracking-tight">Case Library</h2>
           <button 
             onClick={handleUploadClick}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-[#EADDD7] rounded-xl text-sm font-bold shadow-sm hover:bg-slate-50 transition-all"
+            disabled={isExtracting}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-[#EADDD7] rounded-xl text-sm font-bold shadow-sm hover:bg-slate-50 transition-all disabled:opacity-50"
           >
-            <Upload size={16} /> Upload New
+            {isExtracting ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Reading file...
+              </>
+            ) : (
+              <>
+                <Upload size={16} /> Upload New
+              </>
+            )}
           </button>
         </div>
+
+        {extractionError && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 bg-red-50 border border-red-100 rounded-2xl flex gap-3 items-start"
+          >
+            <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-bold text-red-700">Upload Failed</p>
+              <p className="text-xs text-red-600 mt-0.5">{extractionError}</p>
+            </div>
+            <button
+              onClick={() => setExtractionError(null)}
+              className="ml-auto text-red-300 hover:text-red-500"
+            >
+              <X size={14} />
+            </button>
+          </motion.div>
+        )}
 
         <div className="space-y-3">
           {appCase.docs.map((doc) => (
@@ -132,27 +219,31 @@ export default function DocumentAnalysis({
                 )}>
                   <FileText size={24} className={selectedDoc?.id === doc.id ? "text-white" : "text-brand-600"} />
                 </div>
-                <div className="truncate">
-                  <p className="font-bold text-sm truncate">{doc.name}</p>
-                  <p className={cn(
-                    "text-xs truncate",
-                    selectedDoc?.id === doc.id ? "text-white/60" : "text-slate-400"
-                  )}>
-                    {doc.type} • Uploaded {doc.uploadDate}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                {doc.status === 'flagged' && (
-                  <div className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center text-white">
-                    <AlertCircle size={14} />
+                  <div className="truncate">
+                    <p className="font-bold text-sm truncate">{doc.name}</p>
+                    <p className={cn(
+                      "text-xs truncate",
+                      selectedDoc?.id === doc.id ? "text-white/60" : "text-slate-400"
+                    )}>
+                      {doc.type} • Uploaded {doc.uploadDate}
+                    </p>
+                    <span className={cn(
+                      "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border mt-1",
+                      selectedDoc?.id === doc.id 
+                        ? "bg-white/20 text-white border-white/30" 
+                        : statusConfig[doc.status].color
+                    )}>
+                      {statusConfig[doc.status].label}
+                      {doc.flagsCount && doc.status === 'flagged' ? ` · ${doc.flagsCount} flags` : ''}
+                    </span>
                   </div>
-                )}
-                <ChevronRight size={20} className={cn(
-                  "transition-transform",
-                  selectedDoc?.id === doc.id ? "text-white" : "text-slate-300 group-hover:translate-x-1"
-                )} />
-              </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <ChevronRight size={20} className={cn(
+                    "transition-transform",
+                    selectedDoc?.id === doc.id ? "text-white" : "text-slate-300 group-hover:translate-x-1"
+                  )} />
+                </div>
             </motion.div>
           ))}
         </div>
@@ -222,6 +313,26 @@ export default function DocumentAnalysis({
                   </div>
                 ) : (
                   <div className="prose prose-brand prose-sm max-w-none">
+                    {selectedDoc?.structuredData && Object.keys(selectedDoc.structuredData).length > 0 && (
+                      <div className="mb-6 p-5 bg-slate-50 rounded-3xl border border-slate-100">
+                        <p className="font-bold text-slate-500 uppercase tracking-widest text-[10px] mb-3">
+                          Extracted Fields
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                          {Object.entries(selectedDoc.structuredData).slice(0, 8).map(([key, value]) => (
+                            <div key={key} className="bg-white p-3 rounded-2xl border border-slate-100">
+                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                                {key.replace(/_/g, ' ')}
+                              </p>
+                              <p className="text-xs font-bold text-slate-900 truncate" title={value}>
+                                {value || 'â€”'}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="bg-brand-50/50 p-6 rounded-3xl border border-brand-100 mb-8 flex items-start gap-4">
                       <Sparkles size={24} className="text-brand-600 shrink-0 mt-1" />
                       <div>
@@ -272,10 +383,10 @@ export default function DocumentAnalysis({
         title="Upload Document"
       >
         <div className="space-y-6">
-          <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl flex gap-3">
-            <Info size={20} className="text-amber-600 shrink-0" />
-            <p className="text-xs text-amber-800 leading-relaxed font-medium">
-              For best results, upload plain text (.txt) files. PDF/Word support coming soon.
+          <div className="p-4 bg-brand-50 border border-brand-100 rounded-2xl flex gap-3">
+            <Info size={20} className="text-brand-600 shrink-0" />
+            <p className="text-xs text-brand-800 leading-relaxed font-medium">
+              PDF and Word files are fully supported. Text has already been extracted and is ready to analyse.
             </p>
           </div>
           <div className="space-y-4">

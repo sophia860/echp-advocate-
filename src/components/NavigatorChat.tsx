@@ -8,7 +8,10 @@ import {
   Plus, 
   ArrowRight,
   Info,
-  ShieldCheck
+  ShieldCheck,
+  ChevronDown,
+  Clock,
+  FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
@@ -22,7 +25,20 @@ export default function NavigatorChat({ appCase }: { appCase: Case }) {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (scrollRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+        setShowScrollBottom(scrollHeight - scrollTop - clientHeight > 100);
+      }
+    };
+    const current = scrollRef.current;
+    current?.addEventListener('scroll', handleScroll);
+    return () => current?.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -53,8 +69,24 @@ export default function NavigatorChat({ appCase }: { appCase: Case }) {
     setIsLoading(false);
   };
 
+  const scrollToBottom = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const suggestions = [
+    { label: "Check deadlines", icon: Clock },
+    { label: "Review Draft Plan", icon: FileText },
+    { label: "Section F wording", icon: ShieldCheck },
+    { label: "Chaser letter", icon: Send }
+  ];
+
   return (
-    <div className="flex flex-col h-full bg-white rounded-[3rem] border border-[#EADDD7] shadow-xl shadow-brand-900/5 overflow-hidden">
+    <div className="flex flex-col h-full bg-white rounded-[3rem] border border-[#EADDD7] shadow-xl shadow-brand-900/5 overflow-hidden relative">
       {/* Chat Header */}
       <div className="p-6 border-b border-[#EADDD7] bg-white flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -121,7 +153,42 @@ export default function NavigatorChat({ appCase }: { appCase: Case }) {
             </div>
           </div>
         )}
+        <AnimatePresence>
+          {showScrollBottom && (
+            <motion.button
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              onClick={scrollToBottom}
+              className="fixed bottom-32 left-1/2 -translate-x-1/2 md:absolute md:bottom-32 bg-brand-900 text-white p-3 rounded-full shadow-xl z-50 hover:bg-brand-800 transition-all"
+            >
+              <ChevronDown size={20} />
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
+
+      {/* Suggestion Chips */}
+      <AnimatePresence>
+        {messages.length === 1 && !isLoading && !input && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="flex flex-wrap gap-2 px-8 pb-4"
+          >
+            {["What's my next deadline?", "Draft a Section F challenge", "Review latest EP report", "Ask about LA delays"].map((s, i) => (
+              <button
+                key={i}
+                onClick={() => setInput(s)}
+                className="px-4 py-2 bg-brand-50 border border-brand-100 rounded-full text-xs font-bold text-brand-700 hover:bg-brand-100 transition-all"
+              >
+                {s}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Input */}
       <div className="p-6 bg-white border-t border-[#EADDD7]">

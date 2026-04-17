@@ -14,13 +14,15 @@ import {
   CheckCircle2,
   ChevronRight,
   Plus,
-  Users
+  Users,
+  Download
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 import type { Case } from '../types';
 import { askNavigator } from '../lib/gemini';
+import { htmlToPdf, mergePdfs, downloadBase64File } from '../lib/flowr';
 
 export default function TribunalPrep({ appCase, onToast }: { appCase: Case; onToast: (msg: string) => void }) {
   const [isUnlocked, setIsUnlocked] = useState(false);
@@ -30,6 +32,9 @@ export default function TribunalPrep({ appCase, onToast }: { appCase: Case; onTo
   ]);
   const [userInput, setUserInput] = useState('');
   const [isAiResponding, setIsAiResponding] = useState(false);
+  const [isAddingToBundle, setIsAddingToBundle] = useState(false);
+  const [newBundleTitle, setNewBundleTitle] = useState('');
+  const [isExportingBundle, setIsExportingBundle] = useState(false);
   
   const [bundle, setBundle] = useState([
     { id: '1', title: 'EP Report (Sarah Mills)', status: 'ready', date: '2024' },
@@ -57,15 +62,152 @@ export default function TribunalPrep({ appCase, onToast }: { appCase: Case; onTo
     setIsAiResponding(false);
   };
 
-  const addToBundle = () => {
+  const confirmAddToBundle = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBundleTitle.trim()) return;
+    
     const newItem = {
       id: Math.random().toString(36).substr(2, 9),
-      title: 'New Evidence Document',
-      status: 'ready',
+      title: newBundleTitle,
+      status: 'ready' as const,
       date: 'Today'
     };
     setBundle([...bundle, newItem]);
+    setNewBundleTitle('');
+    setIsAddingToBundle(false);
     onToast("✓ Added to bundle");
+  };
+
+  const handleExportBundle = async () => {
+    const readyItems = bundle.filter(item => item.status === 'ready');
+
+    if (readyItems.length === 0) {
+      onToast('No ready documents in the bundle to export.');
+      return;
+    }
+
+    setIsExportingBundle(true);
+
+    try {
+      // Step 1: Build a cover page HTML and convert it to PDF base64
+      const today = new Date().toLocaleDateString('en-GB', {
+        day: 'numeric', month: 'long', year: 'numeric'
+      });
+
+      const coverHtml = `
+        <!DOCTYPE html><html><head><meta charset="UTF-8">
+        <style>
+          body { font-family: Georgia, serif; color: #1a1a1a; padding: 80px 60px; }
+          h1 { font-size: 28pt; color: #6B2619; margin-bottom: 8px; }
+          h2 { font-size: 14pt; font-weight: normal; color: #666; margin-top: 0; }
+          .meta { margin-top: 60px; font-size: 11pt; line-height: 2; }
+          .index { margin-top: 48px; }
+          .index h3 { font-size: 12pt; text-transform: uppercase; letter-spacing: 0.1em; color: #999; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+          .index-item { padding: 10px 0; border-bottom: 1px solid #f5f5f5; font-size: 11pt; display: flex; justify-content: space-between; }
+          .badge { font-size: 9pt; color: #2d9e6b; font-weight: bold; text-transform: uppercase; }
+          .footer { position: fixed; bottom: 40px; font-size: 9pt; color: #bbb; }
+        </style></head>
+        <body>
+          <h1>Tribunal Evidence Bundle</h1>
+          <h2>Case of ${appCase.childName}, Age ${appCase.age}</h2>
+          <div class="meta">
+            <strong>Local Authority:</strong> ${appCase.laName}<br/>
+            <strong>Current Stage:</strong> ${appCase.currentStage}<br/>
+            <strong>Bundle Prepared:</strong> ${today}<br/>
+            <strong>Prepared by:</strong> Parent/Guardian via EHCP Navigator
+          </div>
+          <div class="index">
+            <h3>Bundle Contents</h3>
+            ${readyItems.map((item, i) => `
+              <div class="index-item">
+                <span><strong>${i + 1}.</strong> ${item.title}</span>
+                <span class="badge">âœ“ Ready Â· ${item.date}</span>
+              </div>
+            `).join('')}
+          </div>
+          <div class="footer">
+            EHCP Navigator Â· Generated ${today} Â· SENDIST Tribunal Bundle
+          </div>
+        </body></html>
+      `;
+
+      const coverResponse = await fetch('https://api.apps-encodian.com/api/v1/pdf/convert/html', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Ocp-Apim-Subscription-Key': process.env.ENCODIAN_API_KEY!,
+        },
+        body: JSON.stringify({
+          HtmlContent: coverHtml,
+          FileName: 'cover.pdf',
+          PageSize: 'A4',
+          MarginTop: '25mm',
+          MarginBottom: '25mm',
+          MarginLeft: '20mm',
+          MarginRight: '20mm',
+        }),
+      });
+
+      if (!coverResponse.ok) throw new Error('Cover page generation failed');
+      const coverData = await coverResponse.json();
+      const coverBase64 = coverData.FileContent || coverData.fileContent;
+
+      // Step 2: Collect all ready document files
+      const filesToMerge: { content: string; name: string }[] = [
+        { content: coverBase64, name: 'cover.pdf' }
+      ];
+
+      for (const item of readyItems) {
+        const matchingDoc = appCase.docs.find(d => 
+          d.name.toLowerCase().includes(item.title.toLowerCase().split(' ')[0].toLowerCase())
+        );
+        if (matchingDoc?.content) {
+          const docHtml = `<html><body style="font-family:Georgia,serif;padding:40px;font-size:11pt;line-height:1.7">
+            <h2 style="color:#6B2619;border-bottom:1px solid #eee;padding-bottom:8px">${matchingDoc.name}</h2>
+            <p style="color:#999;font-size:9pt;margin-bottom:24px">Document Type: ${matchingDoc.type} Â· Added: ${matchingDoc.uploadDate}</p>
+            <div>${matchingDoc.content.replace(/\n/g, '<br/>')}</div>
+          </body></html>`;
+
+          const docResponse = await fetch('https://api.apps-encodian.com/api/v1/pdf/convert/html', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Ocp-Apim-Subscription-Key': process.env.ENCODIAN_API_KEY!,
+            },
+            body: JSON.stringify({
+              HtmlContent: docHtml,
+              FileName: `${matchingDoc.name}.pdf`,
+              PageSize: 'A4',
+            }),
+          });
+
+          if (docResponse.ok) {
+            const docData = await docResponse.json();
+            filesToMerge.push({
+              content: docData.FileContent || docData.fileContent,
+              name: `${matchingDoc.name}.pdf`,
+            });
+          }
+        }
+      }
+
+      // Step 3: Merge all into one bundle PDF
+      if (filesToMerge.length === 1) {
+        downloadBase64File(coverBase64, `${appCase.childName}_Tribunal_Bundle_${today.replace(/ /g, '_')}.pdf`, 'application/pdf');
+      } else {
+        await mergePdfs(
+          filesToMerge,
+          `${appCase.childName}_Tribunal_Bundle_${today.replace(/ /g, '_')}.pdf`
+        );
+      }
+
+      onToast('✓ Tribunal bundle downloaded successfully');
+    } catch (error) {
+      console.error('Bundle export error:', error);
+      onToast('âš  Bundle export failed. Please try again.');
+    } finally {
+      setIsExportingBundle(false);
+    }
   };
 
   return (
@@ -234,12 +376,50 @@ export default function TribunalPrep({ appCase, onToast }: { appCase: Case; onTo
                       <ChevronRight size={16} className="text-slate-200 group-hover:text-brand-600 transition-all" />
                     </div>
                   ))}
-                  <button 
-                    onClick={addToBundle}
-                    className="w-full mt-4 py-3 bg-brand-50 text-brand-700 border border-dashed border-brand-200 rounded-2xl text-sm font-bold hover:bg-brand-100 transition-colors flex items-center justify-center gap-2"
-                  >
-                     <Plus size={16} /> Add to Bundle
-                  </button>
+                  <AnimatePresence>
+                    {isAddingToBundle ? (
+                      <motion.form 
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        onSubmit={confirmAddToBundle}
+                        className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3"
+                      >
+                        <input 
+                          autoFocus
+                          type="text" 
+                          placeholder="Evidence title..."
+                          value={newBundleTitle}
+                          onChange={e => setNewBundleTitle(e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                        />
+                        <div className="flex gap-2">
+                          <button type="submit" className="flex-1 py-2 bg-brand-900 text-white rounded-xl text-xs font-bold hover:bg-brand-800">Add</button>
+                          <button type="button" onClick={() => setIsAddingToBundle(false)} className="px-3 py-2 bg-white border border-slate-200 text-slate-400 rounded-xl text-xs font-bold hover:bg-slate-50">Cancel</button>
+                        </div>
+                      </motion.form>
+                    ) : (
+                      <button 
+                        onClick={() => setIsAddingToBundle(true)}
+                        className="w-full mt-4 py-3 bg-brand-50 text-brand-700 border border-dashed border-brand-200 rounded-2xl text-sm font-bold hover:bg-brand-100 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Plus size={16} /> Add to Bundle
+                      </button>
+                    )}
+                  </AnimatePresence>
+                  {bundle.some(item => item.status === 'ready') && (
+                    <button
+                      onClick={handleExportBundle}
+                      disabled={isExportingBundle}
+                      className="w-full mt-2 py-3 bg-brand-900 text-white rounded-2xl text-sm font-bold hover:bg-brand-800 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand-900/10"
+                    >
+                      {isExportingBundle ? (
+                        <><Loader2 size={16} className="animate-spin" /> Building Bundle...</>
+                      ) : (
+                        <><Download size={16} /> Export Bundle PDF</>
+                      )}
+                    </button>
+                  )}
                 </div>
              </div>
 

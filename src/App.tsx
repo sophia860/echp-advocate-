@@ -60,6 +60,11 @@ export default function App() {
 
   // Global UI State
   const [isAddResourceOpen, setIsAddResourceOpen] = useState(false);
+
+  useEffect(() => {
+    const tabLabel = tabs.find(t => t.id === activeTab)?.label ?? 'Navigator';
+    document.title = `${tabLabel} — ${appCase.childName}'s Case | EHCP Navigator`;
+  }, [activeTab, appCase.childName]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [toast, setToast] = useState<{ message: string; isVisible: boolean }>({ message: '', isVisible: false });
@@ -138,6 +143,11 @@ export default function App() {
               )} />
               {isSidebarOpen && (
                 <span className="text-sm">{tab.label}</span>
+              )}
+              {!isSidebarOpen && (
+                <span className="absolute left-full ml-3 px-3 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-lg">
+                  {tab.label}
+                </span>
               )}
               {activeTab === tab.id && (
                 <motion.div 

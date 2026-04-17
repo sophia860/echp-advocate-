@@ -10,13 +10,16 @@ import {
   Plus,
   Loader2,
   X,
-  Gavel
+  Gavel,
+  Download,
+  Copy
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 import type { Case } from '../types';
 import { askNavigator } from '../lib/gemini';
+import { htmlToPdf, buildLetterHtml } from '../lib/flowr';
 import Modal from './ui/Modal';
 
 export default function Dashboard({ 
@@ -32,6 +35,7 @@ export default function Dashboard({
   const [isDraftingChallenge, setIsDraftingChallenge] = useState(false);
   const [isDraftingChaser, setIsDraftingChaser] = useState(false);
   const [aiDraft, setAiDraft] = useState<{ title: string; content: string } | null>(null);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   
   const [showAddProf, setShowAddProf] = useState(false);
@@ -56,6 +60,25 @@ export default function Dashboard({
     setIsDraftingChaser(false);
   };
 
+  const handleDownloadLetterPdf = async () => {
+    if (!aiDraft) return;
+    setIsDownloadingPdf(true);
+    try {
+      const html = buildLetterHtml({
+        childName: appCase.childName,
+        laName: appCase.laName,
+        letterTitle: aiDraft.title,
+        body: aiDraft.content,
+        senderName: 'Sarah (Maya\'s Parent)',
+      });
+      await htmlToPdf(html, `${aiDraft.title.replace(/\s+/g, '_')}.pdf`);
+    } catch (error) {
+      console.error('Flowr error:', error);
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
+
   const handleAddProf = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProf.name || !newProf.role) return;
@@ -67,8 +90,54 @@ export default function Dashboard({
     setShowAddProf(false);
   };
 
+  const getDaysRemaining = (deadline: string) => {
+    const diff = new Date(deadline).getTime() - new Date().getTime();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  };
+
+  const daysLeft = getDaysRemaining(appCase.nextDeadline);
+  const urgencyColor = daysLeft <= 7 
+    ? 'text-red-600 bg-red-50 border-red-100' 
+    : daysLeft <= 21 
+      ? 'text-amber-600 bg-amber-50 border-amber-100' 
+      : 'text-emerald-600 bg-emerald-50 border-emerald-100';
+
+  const stages: string[] = [
+    'Pre-request', 'Request Submitted', 'Assessment', 
+    'Draft Plan', 'Finalized', 'Review/Appeals', 'Tribunal Prep'
+  ];
+  const currentIndex = stages.indexOf(appCase.currentStage);
+
   return (
     <div className="space-y-8 pb-12">
+      {/* Journey Progress Bar */}
+      <div className="bg-white p-6 rounded-[2.5rem] border border-[#EADDD7] shadow-sm mb-2">
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Case Journey</p>
+          <span className="text-xs font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full">
+            Stage {currentIndex + 1} of {stages.length}
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          {stages.map((stage, i) => (
+            <div key={stage} className="flex-1 flex flex-col items-center gap-1.5">
+              <div className={cn(
+                "w-full h-2 rounded-full transition-all",
+                i < currentIndex ? "bg-emerald-400" :
+                i === currentIndex ? "bg-brand-500" :
+                "bg-slate-100"
+              )} />
+              <span className={cn(
+                "text-[9px] font-bold uppercase tracking-wider text-center leading-tight hidden md:block",
+                i === currentIndex ? "text-brand-600" : "text-slate-300"
+              )}>
+                {stage}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Top Section: Status Cards */}
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <motion.div 
@@ -80,11 +149,10 @@ export default function Dashboard({
             <p className="text-sm font-bold text-brand-600 uppercase tracking-widest mb-1">Current Stage</p>
             <h3 className="text-2xl font-bold text-slate-900 mb-4">{appCase.currentStage}</h3>
             <div className="flex items-center gap-2 text-sm text-slate-500">
-              <Clock size={16} />
-              <span>{appCase.deadlineLabel}: <strong>14 days remaining</strong></span>
-            </div>
-            <div className="mt-4 w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-              <div className="h-full bg-brand-500 w-3/4 rounded-full" />
+               <div className={cn("inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-bold", urgencyColor)}>
+                <Clock size={12} />
+                {daysLeft > 0 ? `${daysLeft} days remaining` : `${Math.abs(daysLeft)} days overdue`}
+              </div>
             </div>
           </div>
         </motion.div>
@@ -315,11 +383,20 @@ export default function Dashboard({
           <button 
             onClick={() => {
               navigator.clipboard.writeText(aiDraft?.content || '');
-              setAiDraft(null);
             }}
-            className="flex-1 py-4 bg-brand-900 text-white rounded-2xl font-bold hover:bg-brand-800 transition-all shadow-lg shadow-brand-900/10"
+            className="flex-1 py-4 bg-white border border-slate-200 text-slate-700 rounded-2xl font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
           >
-            Copy to Clipboard
+            <Copy size={18} /> Copy Text
+          </button>
+          <button 
+            onClick={handleDownloadLetterPdf}
+            disabled={isDownloadingPdf}
+            className="flex-1 py-4 bg-brand-900 text-white rounded-2xl font-bold hover:bg-brand-800 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand-900/10"
+          >
+            {isDownloadingPdf 
+              ? <><Loader2 size={18} className="animate-spin" /> Generating PDF...</>
+              : <><Download size={18} /> Download PDF</>
+            }
           </button>
         </div>
       </Modal>

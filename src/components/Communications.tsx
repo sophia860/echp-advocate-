@@ -11,13 +11,14 @@ import {
   Mail,
   Sparkles,
   Copy,
-  PlusIcon
+  Loader2
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 import type { Case, Communication } from '../types';
 import { askNavigator } from '../lib/gemini';
+import { htmlToPdf, buildLetterHtml } from '../lib/flowr';
 import Modal from './ui/Modal';
 import AiButton from './ui/AiButton';
 
@@ -36,7 +37,9 @@ export default function Communications({
   const [customDescription, setCustomDescription] = useState('');
   const [generatedDraft, setGeneratedDraft] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [reviewingComm, setReviewingComm] = useState<Communication | null>(null);
+  const [reviewBody, setReviewBody] = useState('');
 
   const allComms: Communication[] = [
     ...appCase.comms,
@@ -57,6 +60,25 @@ export default function Communications({
     const result = await askNavigator(prompt);
     setGeneratedDraft(result);
     setIsGenerating(false);
+  };
+
+  const handleDownloadLetterPdf = async () => {
+    if (!generatedDraft) return;
+    setIsDownloadingPdf(true);
+    try {
+      const html = buildLetterHtml({
+        childName: appCase.childName,
+        laName: appCase.laName,
+        letterTitle: selectedLetterType,
+        body: generatedDraft,
+        senderName: 'Sarah (Maya\'s Parent)',
+      });
+      await htmlToPdf(html, `${selectedLetterType.replace(/\s+/g, '_')}.pdf`);
+    } catch (error) {
+      console.error('Flowr error:', error);
+    } finally {
+      setIsDownloadingPdf(false);
+    }
   };
 
   const handleSaveDraft = () => {
@@ -87,12 +109,13 @@ export default function Communications({
 
   const handleReview = (comm: Communication) => {
     setReviewingComm(comm);
+    setReviewBody(comm.content || 'This draft was AI-generated. Review and edit before sending.');
     setIsReviewModalOpen(true);
   };
 
   const handleMarkAsSent = () => {
     if (!reviewingComm) return;
-    onUpdateComm({ ...reviewingComm, status: 'sent' });
+    onUpdateComm({ ...reviewingComm, status: 'sent', content: reviewBody });
     setIsReviewModalOpen(false);
   };
 
@@ -125,14 +148,30 @@ export default function Communications({
             Recent Timeline
           </h3>
           
-          <div className="space-y-3">
-            {allComms.map((comm) => (
-              <motion.div 
-                whileHover={{ x: 4 }}
-                key={comm.id} 
-                className="bg-white p-5 rounded-[2rem] border border-[#EADDD7] shadow-sm flex items-center justify-between group"
-              >
-                <div className="flex items-center gap-4 min-w-0">
+          {allComms.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-16 h-16 bg-brand-50 rounded-3xl flex items-center justify-center text-brand-300 mb-4">
+                <Mail size={32} />
+              </div>
+              <h3 className="font-bold text-slate-900 mb-1">No communications yet</h3>
+              <p className="text-sm text-slate-400 max-w-xs">Draft your first letter to the LA using one of the templates on the right.</p>
+            </div>
+          ) : (
+            <div className="relative space-y-3 pl-6 before:absolute before:left-[11px] before:top-4 before:bottom-4 before:w-0.5 before:bg-slate-100">
+              {allComms.map((comm) => (
+                <motion.div 
+                  whileHover={{ x: 4 }}
+                  key={comm.id} 
+                  className="bg-white p-5 rounded-[2rem] border border-[#EADDD7] shadow-sm flex items-center justify-between group relative"
+                >
+                  {/* Timeline dot */}
+                  <div className={cn(
+                    "absolute -left-[26px] top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border-2 border-white z-10",
+                    comm.status === 'draft' ? "bg-brand-400" :
+                    comm.status === 'sent' ? "bg-emerald-400" :
+                    "bg-blue-400"
+                  )} />
+                  <div className="flex items-center gap-4 min-w-0">
                   <div className={cn(
                     "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
                     comm.status === 'draft' ? "bg-brand-50 text-brand-600" :
@@ -180,6 +219,7 @@ export default function Communications({
               </motion.div>
             ))}
           </div>
+          )}
         </div>
 
         <div className="space-y-6">
@@ -276,13 +316,23 @@ export default function Communications({
                   onClick={() => {
                     navigator.clipboard.writeText(generatedDraft);
                   }}
-                  className="flex-1 py-4 bg-white border border-slate-200 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-slate-50"
+                  className="flex-1 py-4 bg-white border border-slate-200 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-slate-50 text-sm"
                 >
-                  <Copy size={18} /> Copy
+                  <Copy size={16} /> Copy
+                </button>
+                <button
+                  onClick={handleDownloadLetterPdf}
+                  disabled={isDownloadingPdf}
+                  className="flex-1 py-4 bg-slate-700 text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-slate-600 disabled:opacity-50 transition-all"
+                >
+                  {isDownloadingPdf
+                    ? <><Loader2 size={16} className="animate-spin" /> PDF...</>
+                    : <><Download size={16} /> PDF</>
+                  }
                 </button>
                 <button 
                   onClick={handleSaveDraft}
-                  className="flex-1 py-4 bg-brand-900 text-white rounded-2xl font-bold hover:bg-brand-800"
+                  className="flex-1 py-4 bg-brand-900 text-white rounded-2xl font-bold text-sm hover:bg-brand-800"
                 >
                   Save as Draft
                 </button>
@@ -305,7 +355,8 @@ export default function Communications({
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Message Body</label>
             <textarea 
-              defaultValue={reviewingComm?.content || "This draft was AI-generated. Review and edit before sending."}
+              value={reviewBody}
+              onChange={(e) => setReviewBody(e.target.value)}
               className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 min-h-[250px] font-sans leading-relaxed"
             />
           </div>
