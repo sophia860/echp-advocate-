@@ -17,7 +17,7 @@ import { motion } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 import type { Case, Communication } from '../types';
-import { askNavigator } from '../lib/gemini';
+import { askNavigator } from '../lib/ai-client';
 import { htmlToPdf, buildLetterHtml } from '../lib/flowr';
 import Modal from './ui/Modal';
 import AiButton from './ui/AiButton';

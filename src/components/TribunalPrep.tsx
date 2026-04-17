@@ -21,7 +21,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 import type { Case } from '../types';
-import { askNavigator } from '../lib/gemini';
+import { askNavigator } from '../lib/ai-client';
 import { htmlToPdf, mergePdfs, downloadBase64File, htmlToPdfBase64 } from '../lib/flowr';
 
 export default function TribunalPrep({ appCase, onToast }: { appCase: Case; onToast: (msg: string) => void }) {
