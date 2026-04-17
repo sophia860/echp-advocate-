@@ -33,7 +33,7 @@ Always write in the parent's voice (warm but firm) when drafting letters.
 export async function askNavigator(prompt: string, history: { role: string; parts: { text: string }[] }[] = []) {
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-pro-preview",
+      model: "gemini-2.0-flash",
       contents: [
         ...history,
         { role: "user", parts: [{ text: prompt }] }
@@ -66,7 +66,7 @@ ${docContent}
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-pro-preview",
+      model: "gemini-2.0-flash",
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: {
         systemInstruction: SYSTEM_PROMPT,

@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { 
+  Plus, 
   Search, 
   MapPin, 
   Star, 
@@ -6,12 +8,44 @@ import {
   Users,
   Video,
   Clock,
-  Filter
+  Filter,
+  Trash2,
+  Phone
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import Modal from './ui/Modal';
 
-export default function ProfessionalFinder() {
+interface Prof {
+  id: string;
+  name: string;
+  role: string;
+}
+
+export default function ProfessionalFinder({ onToast }: { onToast: (msg: string) => void }) {
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
+  const [newProf, setNewProf] = useState({ name: '', role: '' });
+  const [team, setTeam] = useState<Prof[]>([
+    { id: '1', name: 'Sarah Chen', role: 'Main Advocate' },
+    { id: '2', name: 'Dr. Sarah Mills', role: 'Educational Psych' },
+    { id: '3', name: 'John Doe', role: 'LA Case Officer' },
+  ]);
+
+  const handleAddProf = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProf.name || !newProf.role) return;
+    setTeam([...team, { id: Math.random().toString(36).substr(2, 9), ...newProf }]);
+    setNewProf({ name: '', role: '' });
+    setIsAddModalOpen(false);
+    onToast(`✓ ${newProf.name} added to your team`);
+  };
+
+  const removeProf = (id: string) => {
+    setTeam(team.filter(p => p.id !== id));
+    onToast("Professional removed from team");
+  };
+
   const professionals = [
     { name: 'Dr. James Okafor', role: 'Independent Ed Psychologist', tags: ['ASD', 'SpLD', 'SEMH'], location: 'London / Remote', turnaround: '3 weeks', rating: 4.9, reviews: 42, price: '£1,200 - £1,500' },
     { name: 'Dr. Priya Nair', role: 'ADHD Specialist', tags: ['ADHD', 'PDA', 'Gifted'], location: 'Midlands / Remote', turnaround: '4 weeks', rating: 4.8, reviews: 28, price: '£1,000 - £1,300' },
@@ -29,10 +63,16 @@ export default function ProfessionalFinder() {
             Tribunal panels prioritize evidence less than 2 years old.
           </p>
           <div className="flex flex-wrap gap-4">
-            <button className="px-5 py-2.5 bg-white text-brand-900 rounded-xl text-sm font-bold shadow-lg hover:bg-brand-50 transition-all flex items-center gap-2">
-              <PlusIcon size={18} /> Add Professional
+            <button 
+              onClick={() => setIsAddModalOpen(true)}
+              className="px-5 py-2.5 bg-white text-brand-900 rounded-xl text-sm font-bold shadow-lg hover:bg-brand-50 transition-all flex items-center gap-2"
+            >
+              <Plus size={18} /> Add Professional
             </button>
-            <button className="px-5 py-2.5 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-xl text-sm font-bold hover:bg-white/20 transition-all">
+            <button 
+              onClick={() => setIsManageModalOpen(true)}
+              className="px-5 py-2.5 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-xl text-sm font-bold hover:bg-white/20 transition-all"
+            >
               Manage Existing Team
             </button>
           </div>
@@ -131,7 +171,10 @@ export default function ProfessionalFinder() {
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Est. Cost</p>
                       <p className="font-bold text-slate-900">{prof.price}</p>
                    </div>
-                   <button className="mt-4 px-4 py-2.5 bg-brand-900 text-white rounded-xl text-xs font-bold hover:bg-brand-800 transition-all flex items-center gap-2 shadow-lg shadow-brand-900/10">
+                   <button 
+                     onClick={() => onToast(`✓ Contact request sent to ${prof.name}`)}
+                     className="mt-4 px-4 py-2.5 bg-brand-900 text-white rounded-xl text-xs font-bold hover:bg-brand-800 transition-all flex items-center gap-2 shadow-lg shadow-brand-900/10"
+                   >
                       Request Contact <ChevronRight size={14} />
                    </button>
                 </div>
@@ -140,10 +183,93 @@ export default function ProfessionalFinder() {
           </div>
         </div>
       </div>
+
+      <Modal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        title="Add Team Member"
+      >
+        <form onSubmit={handleAddProf} className="space-y-6">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Full Name</label>
+              <input 
+                autoFocus
+                type="text" 
+                value={newProf.name}
+                onChange={e => setNewProf({...newProf, name: e.target.value})}
+                placeholder="e.g. Dr. Sarah Mills"
+                className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Role / Specialism</label>
+              <input 
+                type="text" 
+                value={newProf.role}
+                onChange={e => setNewProf({...newProf, role: e.target.value})}
+                placeholder="e.g. Educational Psychologist"
+                className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              />
+            </div>
+          </div>
+          <button 
+            type="submit"
+            className="w-full py-4 bg-brand-900 text-white rounded-2xl font-bold hover:bg-brand-800 transition-all shadow-lg"
+          >
+            Add to Team
+          </button>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={isManageModalOpen}
+        onClose={() => setIsManageModalOpen(false)}
+        title="Manage Team"
+      >
+        <div className="space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+          {team.length === 0 ? (
+             <div className="text-center py-12 text-slate-400">
+               <Users size={40} className="mx-auto mb-3 opacity-20" />
+               <p className="text-sm font-medium">No team members added yet.</p>
+             </div>
+          ) : (
+            team.map((person) => (
+              <div key={person.id} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between group">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white rounded-xl border border-slate-200 flex items-center justify-center text-brand-600">
+                    <Users size={20} />
+                  </div>
+                  <div>
+                    <h5 className="text-sm font-bold text-slate-900">{person.name}</h5>
+                    <p className="text-xs text-slate-500 font-medium">{person.role}</p>
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <button className="p-2 text-slate-400 hover:text-brand-600 hover:bg-white rounded-lg transition-all">
+                    <Phone size={16} />
+                  </button>
+                  <button 
+                    onClick={() => removeProf(person.id)}
+                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-white rounded-lg transition-all"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        <button 
+          onClick={() => {
+            setIsManageModalOpen(false);
+            setIsAddModalOpen(true);
+          }}
+          className="mt-6 w-full py-4 border border-dashed border-[#EADDD7] rounded-2xl text-slate-400 text-sm font-medium hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
+        >
+          <Plus size={16} /> Add Another
+        </button>
+      </Modal>
     </div>
   );
-}
-
-function PlusIcon({ size }: { size: number }) {
-  return <Users size={size} />;
 }

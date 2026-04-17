@@ -1,20 +1,14 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# EHCP Advocate App
 
-# Run and deploy your AI Studio app
+An AI-powered EHCP case companion.
 
-This contains everything you need to run your app locally.
+## Getting Started
 
-View your app in AI Studio: https://ai.studio/apps/66605674-1fb0-4142-93a0-33fabeff0f0a
+1. Rename `.env.example` to `.env` or create it at the root.
+2. Provide your Gemini API key in `.env`.
+3. You can get an API key from [https://aistudio.google.com/apikey](https://aistudio.google.com/apikey).
 
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+```dotenv
+GEMINI_API_KEY="YOUR_GEMINI_API_KEY_HERE"
+APP_URL="http://localhost:3000"
+```

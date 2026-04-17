@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { 
   FileText, 
   Upload, 
@@ -8,39 +8,106 @@ import {
   ChevronRight, 
   Loader2,
   Sparkles,
-  Info
+  Info,
+  ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 import type { Case, CaseDoc } from '../types';
-import { analyzeDocument } from '../lib/gemini';
+import { analyzeDocument, askNavigator } from '../lib/gemini';
+import Modal from './ui/Modal';
+import AiButton from './ui/AiButton';
 
-export default function DocumentAnalysis({ appCase }: { appCase: Case }) {
+export default function DocumentAnalysis({ 
+  appCase,
+  onUpdateDocs,
+  onToast
+}: { 
+  appCase: Case;
+  onUpdateDocs: (docs: CaseDoc[]) => void;
+  onToast: (msg: string) => void;
+}) {
   const [selectedDoc, setSelectedDoc] = useState<CaseDoc | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<string | null>(null);
+  const [isDraftingResponse, setIsDraftingResponse] = useState(false);
+  const [draftResponse, setDraftResponse] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [newDocInfo, setNewDocInfo] = useState({ name: '', type: 'Draft Plan' });
+  const [uploadedFileContent, setUploadedFileContent] = useState('');
 
   const handleAnalyze = async (doc: CaseDoc) => {
     setSelectedDoc(doc);
     setIsAnalyzing(true);
     setAnalysisResult(null);
     
-    // In a real app, we'd fetch actual doc content. Simulating here.
-    const mockContent = `Draft EHCP for Maya. Section F provision: "Maya will have access to support in the classroom as appropriate to her needs. The school will provide some sensory equipment where possible."`;
-    const result = await analyzeDocument(mockContent, doc.type);
+    // In a real app, we'd fetch actual doc content. Simulating here for the existing ones.
+    const content = doc.id.length > 5 ? uploadedFileContent : `Draft EHCP for Maya. Section F provision: "Maya will have access to support in the classroom as appropriate to her needs. The school will provide some sensory equipment where possible."`;
+    const result = await analyzeDocument(content, doc.type);
     
     setAnalysisResult(result);
     setIsAnalyzing(false);
   };
 
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setUploadedFileContent(event.target?.result as string);
+      setNewDocInfo(prev => ({ ...prev, name: file.name }));
+      setIsUploadModalOpen(true);
+    };
+    reader.readAsText(file);
+  };
+
+  const confirmUpload = () => {
+    const newDoc: CaseDoc = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: newDocInfo.name,
+      type: newDocInfo.type as any,
+      uploadDate: 'Today',
+      status: 'reviewed'
+    };
+    onUpdateDocs([newDoc, ...appCase.docs]);
+    setIsUploadModalOpen(false);
+    handleAnalyze(newDoc);
+  };
+
+  const handleDraftResponse = async () => {
+    if (!selectedDoc || !analysisResult) return;
+    setIsDraftingResponse(true);
+    const prompt = `Based on this document analysis of ${selectedDoc.name}, draft a formal response letter to the LA. The analysis found: ${analysisResult}. Write a letter in the parent's voice challenging the weaknesses identified.`;
+    const draft = await askNavigator(prompt);
+    setDraftResponse(draft);
+    setIsDraftingResponse(false);
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full min-h-[600px]">
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleFileChange}
+        accept=".txt,.pdf,.doc,.docx"
+        className="hidden" 
+      />
       {/* Left: Document List */}
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold font-display italic tracking-tight">Case Library</h2>
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-[#EADDD7] rounded-xl text-sm font-bold shadow-sm hover:bg-slate-50 transition-all">
+          <button 
+            onClick={handleUploadClick}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-[#EADDD7] rounded-xl text-sm font-bold shadow-sm hover:bg-slate-50 transition-all"
+          >
             <Upload size={16} /> Upload New
           </button>
         </div>
@@ -180,10 +247,17 @@ export default function DocumentAnalysis({ appCase }: { appCase: Case }) {
               </div>
 
               <div className="p-6 bg-slate-50/50 border-t border-[#EADDD7] grid grid-cols-2 gap-4">
-                <button className="py-3 px-4 bg-brand-900 text-white rounded-2xl text-sm font-bold shadow-lg shadow-brand-900/10 hover:bg-brand-800 transition-all flex items-center justify-center gap-2">
+                <AiButton 
+                  onClick={handleDraftResponse} 
+                  isLoading={isDraftingResponse}
+                  className="py-3 px-4 w-full"
+                >
                   Draft Response
-                </button>
-                <button className="py-3 px-4 bg-white border border-[#EADDD7] text-slate-700 rounded-2xl text-sm font-bold hover:bg-white hover:border-brand-300 transition-all flex items-center justify-center gap-2">
+                </AiButton>
+                <button 
+                  onClick={() => onToast("✓ Added to tribunal bundle")}
+                  className="py-3 px-4 bg-white border border-[#EADDD7] text-slate-700 rounded-2xl text-sm font-bold hover:bg-white hover:border-brand-300 transition-all flex items-center justify-center gap-2"
+                >
                   Add to Bundle
                 </button>
               </div>
@@ -191,6 +265,70 @@ export default function DocumentAnalysis({ appCase }: { appCase: Case }) {
           )}
         </AnimatePresence>
       </div>
+
+      <Modal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        title="Upload Document"
+      >
+        <div className="space-y-6">
+          <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl flex gap-3">
+            <Info size={20} className="text-amber-600 shrink-0" />
+            <p className="text-xs text-amber-800 leading-relaxed font-medium">
+              For best results, upload plain text (.txt) files. PDF/Word support coming soon.
+            </p>
+          </div>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Document Name</label>
+              <input 
+                type="text" 
+                value={newDocInfo.name}
+                onChange={e => setNewDocInfo({ ...newDocInfo, name: e.target.value })}
+                className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Document Type</label>
+              <select 
+                value={newDocInfo.type}
+                onChange={e => setNewDocInfo({ ...newDocInfo, type: e.target.value })}
+                className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 appearance-none"
+              >
+                <option value="Draft Plan">Draft Plan</option>
+                <option value="LA Letter">LA Letter</option>
+                <option value="Professional Report">Professional Report</option>
+              </select>
+            </div>
+          </div>
+          <button 
+            onClick={confirmUpload}
+            className="w-full py-4 bg-brand-900 text-white rounded-2xl font-bold hover:bg-brand-800 transition-all shadow-lg"
+          >
+            Confirm & Analyze
+          </button>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!draftResponse}
+        onClose={() => setDraftResponse(null)}
+        title="Draft Response Letter"
+      >
+        <div className="prose prose-sm max-w-none">
+          <ReactMarkdown>{draftResponse || ''}</ReactMarkdown>
+        </div>
+        <button 
+          onClick={() => {
+            navigator.clipboard.writeText(draftResponse || '');
+            onToast("✓ Copied to clipboard");
+            setDraftResponse(null);
+          }}
+          className="mt-8 w-full py-4 bg-brand-900 text-white rounded-2xl font-bold hover:bg-brand-800 flex items-center justify-center gap-2"
+        >
+          Copy to Clipboard
+        </button>
+      </Modal>
 
       <style>{`
         .prose h1, .prose h2, .prose h3 { margin-top: 1.5em; margin-bottom: 0.5em; font-weight: 700; color: #1e293b; }

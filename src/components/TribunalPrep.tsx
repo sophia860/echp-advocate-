@@ -11,15 +11,62 @@ import {
   Loader2,
   Lock,
   Zap,
-  CheckCircle2
+  CheckCircle2,
+  ChevronRight,
+  Plus,
+  Users
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 import type { Case } from '../types';
+import { askNavigator } from '../lib/gemini';
 
-export default function TribunalPrep({ appCase }: { appCase: Case }) {
+export default function TribunalPrep({ appCase, onToast }: { appCase: Case; onToast: (msg: string) => void }) {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [activeSession, setActiveSession] = useState(false);
+  const [messages, setMessages] = useState([
+    { role: 'assistant', content: `"Mrs. Sarah, you've mentioned in your statement that Maya experiences 'high-level anxiety' during transition. Can you specify how this manifests specifically at the school gate, and why you feel the current provision is insufficient to address this?"` }
+  ]);
+  const [userInput, setUserInput] = useState('');
+  const [isAiResponding, setIsAiResponding] = useState(false);
+  
+  const [bundle, setBundle] = useState([
+    { id: '1', title: 'EP Report (Sarah Mills)', status: 'ready', date: '2024' },
+    { id: '2', title: 'SALT Assessment', status: 'ready', date: 'June 2025' },
+    { id: '3', title: 'School Provision Log', status: 'needed', date: '-' },
+    { id: '4', title: 'Home Evidence Video', status: 'needed', date: '-' },
+  ]);
+
+  const handleSendResponse = async () => {
+    if (!userInput.trim() || isAiResponding) return;
+    
+    const newMessages = [...messages, { role: 'user', content: userInput }];
+    setMessages(newMessages);
+    setUserInput('');
+    setIsAiResponding(true);
+
+    const prompt = `You are an expert Tribunal Prep Coach for families in England going to a SENDIST tribunal. 
+      The parent just responded to your question: "${userInput}". 
+      1. Provide a brief encouraging but direct "Coach Insight" on how their answer would be perceived by a panel (is it specific enough? does it cite evidence?).
+      2. Then, play the role of the LA Representative or the Panel Chair and ask a follow-up cross-examination style question. 
+      Keep it professional and helpful.`;
+    
+    const response = await askNavigator(prompt);
+    setMessages([...newMessages, { role: 'assistant', content: response }]);
+    setIsAiResponding(false);
+  };
+
+  const addToBundle = () => {
+    const newItem = {
+      id: Math.random().toString(36).substr(2, 9),
+      title: 'New Evidence Document',
+      status: 'ready',
+      date: 'Today'
+    };
+    setBundle([...bundle, newItem]);
+    onToast("✓ Added to bundle");
+  };
 
   return (
     <div className="h-full space-y-8">
@@ -82,7 +129,7 @@ export default function TribunalPrep({ appCase }: { appCase: Case }) {
               </div>
             </div>
 
-            <div className="bg-white p-8 rounded-[3rem] border border-[#EADDD7] shadow-sm relative min-h-[400px] flex flex-col">
+            <div className="bg-white p-8 rounded-[3rem] border border-[#EADDD7] shadow-sm relative min-h-[500px] flex flex-col">
               {!activeSession ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
                    <div className="w-16 h-16 bg-slate-50 text-slate-300 rounded-3xl flex items-center justify-center mb-6 border border-slate-100">
@@ -99,29 +146,66 @@ export default function TribunalPrep({ appCase }: { appCase: Case }) {
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col">
-                   <div className="flex-1 space-y-6">
-                      <div className="flex gap-4">
-                         <div className="w-10 h-10 bg-brand-900 text-white rounded-xl flex items-center justify-center shrink-0 shadow-lg">
-                            <Bot size={20} />
-                         </div>
-                         <div className="flex-1 p-5 bg-brand-50 rounded-3xl rounded-tl-none border border-brand-100">
-                            <p className="font-bold text-brand-900 text-sm mb-2 uppercase tracking-widest">Tribunal Roleplay</p>
-                            <p className="text-slate-800 font-medium leading-relaxed italic">
-                              "Mrs. Sarah, you've mentioned in your statement that Maya experiences 'high-level anxiety' during transition. Can you specify how this manifests specifically at the school gate, and why you feel the current provision is insufficient to address this?"
-                            </p>
-                         </div>
-                      </div>
+                   <div className="flex-1 space-y-6 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar pb-8">
+                      {messages.map((msg, i) => (
+                        <div key={i} className={cn("flex gap-4", msg.role === 'user' ? "flex-row-reverse" : "")}>
+                          <div className={cn(
+                            "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-lg",
+                            msg.role === 'assistant' ? "bg-brand-900 text-white" : "bg-brand-50 text-brand-700"
+                          )}>
+                             {msg.role === 'assistant' ? <Bot size={20} /> : <Users size={20} />}
+                          </div>
+                          <div className={cn(
+                            "flex-1 p-5 rounded-3xl border",
+                            msg.role === 'assistant' ? "bg-brand-50 rounded-tl-none border-brand-100" : "bg-white rounded-tr-none border-slate-200"
+                          )}>
+                             <p className={cn(
+                               "font-bold text-[10px] mb-2 uppercase tracking-widest",
+                               msg.role === 'assistant' ? "text-brand-900" : "text-slate-400"
+                             )}>
+                               {msg.role === 'assistant' ? 'Tribunal Coach' : 'Parent Response'}
+                             </p>
+                             <div className="text-slate-800 font-medium leading-relaxed italic prose prose-sm max-w-none">
+                                <ReactMarkdown>{msg.content}</ReactMarkdown>
+                             </div>
+                          </div>
+                        </div>
+                      ))}
 
-                      <div className="text-center py-8">
-                         <span className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.3em]">Parent is Responding...</span>
-                      </div>
+                      {isAiResponding && (
+                        <div className="flex gap-4 animate-pulse">
+                           <div className="w-10 h-10 bg-brand-900 text-white rounded-xl flex items-center justify-center shrink-0">
+                              <Bot size={20} />
+                           </div>
+                           <div className="flex-1 p-5 bg-brand-50 rounded-3xl rounded-tl-none border border-brand-100">
+                             <p className="text-brand-900 text-sm font-bold flex items-center gap-2">
+                               <Loader2 size={16} className="animate-spin" /> Thinking...
+                             </p>
+                           </div>
+                        </div>
+                      )}
                    </div>
+                   
                    <div className="mt-auto pt-6 border-t border-slate-50 flex gap-3">
-                      <button className="flex-1 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-400 text-sm font-medium hover:bg-slate-100 transition-colors">
-                        Type your answer...
-                      </button>
-                      <button className="px-6 py-4 bg-brand-900 text-white rounded-2xl font-bold shadow-lg shadow-brand-900/10 hover:bg-brand-800 transition-all">
-                        Send Response
+                      <textarea 
+                        value={userInput}
+                        onChange={e => setUserInput(e.target.value)}
+                        placeholder="Describe your evidence or answer the question..."
+                        rows={2}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendResponse();
+                          }
+                        }}
+                        className="flex-1 px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/20 resize-none"
+                      />
+                      <button 
+                        onClick={handleSendResponse}
+                        disabled={!userInput.trim() || isAiResponding}
+                        className="px-6 py-4 bg-brand-900 text-white rounded-2xl font-bold shadow-lg shadow-brand-900/10 hover:bg-brand-800 disabled:opacity-50 disabled:hover:bg-brand-900 transition-all flex items-center justify-center min-w-[120px]"
+                      >
+                        {isAiResponding ? <Loader2 size={20} className="animate-spin" /> : 'Send Response'}
                       </button>
                    </div>
                 </div>
@@ -134,13 +218,8 @@ export default function TribunalPrep({ appCase }: { appCase: Case }) {
              <div className="bg-white p-8 rounded-[3rem] border border-[#EADDD7] shadow-sm">
                 <h3 className="text-lg font-bold mb-6">Evidence Bundle</h3>
                 <div className="space-y-4">
-                  {[
-                    { title: 'EP Report (Sarah Mills)', status: 'ready', date: '2024' },
-                    { title: 'SALT Assessment', status: 'ready', date: 'June 2025' },
-                    { title: 'School Provision Log', status: 'needed', date: '-' },
-                    { title: 'Home Evidence Video', status: 'needed', date: '-' },
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-2xl transition-all cursor-pointer group">
+                  {bundle.map((item, i) => (
+                    <div key={item.id} className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-2xl transition-all cursor-pointer group">
                       <div className="flex items-center gap-3 min-w-0">
                          {item.status === 'ready' ? (
                            <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
@@ -155,8 +234,11 @@ export default function TribunalPrep({ appCase }: { appCase: Case }) {
                       <ChevronRight size={16} className="text-slate-200 group-hover:text-brand-600 transition-all" />
                     </div>
                   ))}
-                  <button className="w-full mt-4 py-3 bg-brand-50 text-brand-700 border border-dashed border-brand-200 rounded-2xl text-sm font-bold hover:bg-brand-100 transition-colors">
-                     Add to Bundle
+                  <button 
+                    onClick={addToBundle}
+                    className="w-full mt-4 py-3 bg-brand-50 text-brand-700 border border-dashed border-brand-200 rounded-2xl text-sm font-bold hover:bg-brand-100 transition-colors flex items-center justify-center gap-2"
+                  >
+                     <Plus size={16} /> Add to Bundle
                   </button>
                 </div>
              </div>
@@ -175,8 +257,4 @@ export default function TribunalPrep({ appCase }: { appCase: Case }) {
       )}
     </div>
   );
-}
-
-function ChevronRight({ size, className }: { size: number, className: string }) {
-  return <ArrowRight size={size} className={className} />;
 }

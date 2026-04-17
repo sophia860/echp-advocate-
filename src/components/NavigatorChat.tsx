@@ -44,7 +44,10 @@ export default function NavigatorChat({ appCase }: { appCase: Case }) {
       parts: [{ text: m.content }]
     }));
 
-    const response = await askNavigator(userMsg, history);
+    const response = await askNavigator(
+      `Context: Child is ${appCase.childName}, Local Authority is ${appCase.laName}. Query: ${userMsg}`, 
+      history
+    );
     
     setMessages(prev => [...prev, { role: 'assistant', content: response }]);
     setIsLoading(false);
@@ -142,7 +145,7 @@ export default function NavigatorChat({ appCase }: { appCase: Case }) {
           </div>
         </div>
         <p className="text-center mt-4 text-[10px] text-slate-400 font-medium uppercase tracking-[0.2em]">
-          Powered by Gemini 1.5 Pro • Trained in SEND Code of Practice
+          Powered by Gemini 2.0 Flash • Trained in SEND Code of Practice
         </p>
       </div>
 

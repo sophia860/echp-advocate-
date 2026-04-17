@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { 
   Plus, 
   Send, 
@@ -8,14 +9,36 @@ import {
   Search,
   ArrowRight,
   Mail,
-  Sparkles
+  Sparkles,
+  Copy,
+  PlusIcon
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
-import type { Case } from '../types';
+import type { Case, Communication } from '../types';
+import { askNavigator } from '../lib/gemini';
+import Modal from './ui/Modal';
+import AiButton from './ui/AiButton';
 
-export default function Communications({ appCase }: { appCase: Case }) {
-  const allComms = [
+export default function Communications({ 
+  appCase,
+  onAddComm,
+  onUpdateComm
+}: { 
+  appCase: Case; 
+  onAddComm: (comm: Communication) => void;
+  onUpdateComm: (comm: Communication) => void;
+}) {
+  const [isDraftModalOpen, setIsDraftModalOpen] = useState(false);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [selectedLetterType, setSelectedLetterType] = useState('Section F Objection');
+  const [customDescription, setCustomDescription] = useState('');
+  const [generatedDraft, setGeneratedDraft] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [reviewingComm, setReviewingComm] = useState<Communication | null>(null);
+
+  const allComms: Communication[] = [
     ...appCase.comms,
     { id: '2', title: 'Initial EHCP Request', to: 'SEN Team, Kent', status: 'sent', date: 'Mar 2025', content: '', isAiGenerated: false },
     { id: '3', title: 'Chaser — 6-week mark', to: 'SEN Team, Kent', status: 'sent', date: 'Apr 2025', content: '', isAiGenerated: true },
@@ -24,6 +47,54 @@ export default function Communications({ appCase }: { appCase: Case }) {
     { id: '6', title: 'LA Refusal', to: 'Parent', status: 'received', date: 'Apr 2025', content: '', isAiGenerated: false },
     { id: '7', title: 'Draft EHCP', to: 'Parent', status: 'received', date: 'Jun 2025', content: '', isAiGenerated: false },
   ];
+
+  const handleGenerate = async () => {
+    setIsGenerating(true);
+    let prompt = `Draft a formal ${selectedLetterType} letter to the SEN Team at Kent County Council regarding Maya's EHCP process.`;
+    if (selectedLetterType === 'Custom') {
+      prompt = `Draft a formal letter to Kent County Council about Maya's EHCP case based on these details: ${customDescription}`;
+    }
+    const result = await askNavigator(prompt);
+    setGeneratedDraft(result);
+    setIsGenerating(false);
+  };
+
+  const handleSaveDraft = () => {
+    if (!generatedDraft) return;
+    const newComm: Communication = {
+      id: Math.random().toString(36).substr(2, 9),
+      title: selectedLetterType === 'Custom' ? 'Custom Letter' : selectedLetterType,
+      to: 'SEN Team, Kent',
+      status: 'draft',
+      date: 'Drafted today',
+      content: generatedDraft,
+      isAiGenerated: true
+    };
+    onAddComm(newComm);
+    setGeneratedDraft(null);
+    setIsDraftModalOpen(false);
+  };
+
+  const handleDownload = (comm: Communication) => {
+    const blob = new Blob([`${comm.title}\n\nTo: ${comm.to}\nDate: ${comm.date}\n\n${comm.content || '[Content not available in demo]'}`], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${comm.title.replace(/\s+/g, '_')}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleReview = (comm: Communication) => {
+    setReviewingComm(comm);
+    setIsReviewModalOpen(true);
+  };
+
+  const handleMarkAsSent = () => {
+    if (!reviewingComm) return;
+    onUpdateComm({ ...reviewingComm, status: 'sent' });
+    setIsReviewModalOpen(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -37,7 +108,13 @@ export default function Communications({ appCase }: { appCase: Case }) {
             <p className="text-xs text-slate-400 font-medium">Manage all letter drafts and records</p>
           </div>
         </div>
-        <button className="px-5 py-2.5 bg-brand-900 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-brand-900/10 hover:bg-brand-800 transition-all">
+        <button 
+          onClick={() => {
+            setSelectedLetterType('Section F Objection');
+            setIsDraftModalOpen(true);
+          }}
+          className="px-5 py-2.5 bg-brand-900 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-brand-900/10 hover:bg-brand-800 transition-all"
+        >
           <Plus size={18} /> Draft New Letter
         </button>
       </div>
@@ -85,11 +162,17 @@ export default function Communications({ appCase }: { appCase: Case }) {
                 
                 <div className="flex gap-2">
                   {comm.status === 'draft' ? (
-                    <button className="px-4 py-2 bg-brand-900 text-white rounded-xl text-xs font-bold hover:bg-brand-800 transition-colors">
+                    <button 
+                      onClick={() => handleReview(comm)}
+                      className="px-4 py-2 bg-brand-900 text-white rounded-xl text-xs font-bold hover:bg-brand-800 transition-colors"
+                    >
                       Review & Send
                     </button>
                   ) : (
-                    <button className="p-2 text-slate-400 hover:text-brand-600 hover:bg-slate-50 transition-colors rounded-lg">
+                    <button 
+                      onClick={() => handleDownload(comm)}
+                      className="p-2 text-slate-400 hover:text-brand-600 hover:bg-slate-50 transition-colors rounded-lg"
+                    >
                       <Download size={18} />
                     </button>
                   )}
@@ -110,7 +193,14 @@ export default function Communications({ appCase }: { appCase: Case }) {
                 'Response to Refusals',
                 'Appeal Notice'
               ].map((template, i) => (
-                <button key={i} className="w-full text-left p-3 rounded-xl hover:bg-slate-50 text-sm flex items-center justify-between group">
+                <button 
+                  key={i} 
+                  onClick={() => {
+                    setSelectedLetterType(template);
+                    setIsDraftModalOpen(true);
+                  }}
+                  className="w-full text-left p-3 rounded-xl hover:bg-slate-50 text-sm flex items-center justify-between group"
+                >
                   <span className="text-slate-600 font-medium">{template}</span>
                   <ArrowRight size={14} className="text-slate-300 group-hover:text-brand-600 group-hover:translate-x-1 transition-all" />
                 </button>
@@ -131,6 +221,110 @@ export default function Communications({ appCase }: { appCase: Case }) {
           </div>
         </div>
       </div>
+
+      <Modal
+        isOpen={isDraftModalOpen}
+        onClose={() => setIsDraftModalOpen(false)}
+        title="Draft New Letter"
+      >
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Letter Type</label>
+              <select 
+                value={selectedLetterType}
+                onChange={e => setSelectedLetterType(e.target.value)}
+                className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 appearance-none"
+              >
+                <option value="Section F Objection">Section F Objection</option>
+                <option value="Timeline Chaser">Timeline Chaser</option>
+                <option value="Request for Assessment">Request for Assessment</option>
+                <option value="Response to Refusals">Response to Refusals</option>
+                <option value="Appeal Notice">Appeal Notice</option>
+                <option value="Custom">Custom</option>
+              </select>
+            </div>
+            
+            {selectedLetterType === 'Custom' && (
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Describe what you need</label>
+                <textarea 
+                  value={customDescription}
+                  onChange={e => setCustomDescription(e.target.value)}
+                  placeholder="e.g. I need to ask the LA for an extension on the draft response deadline..."
+                  className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 min-h-[100px]"
+                />
+              </div>
+            )}
+          </div>
+
+          {!generatedDraft ? (
+            <AiButton 
+              onClick={handleGenerate} 
+              isLoading={isGenerating}
+              className="w-full py-4 justify-center text-sm"
+            >
+              Generate with AI
+            </AiButton>
+          ) : (
+            <div className="space-y-6">
+              <div className="prose prose-sm p-5 bg-slate-50 rounded-2xl border border-slate-100 max-h-[300px] overflow-y-auto custom-scrollbar">
+                <ReactMarkdown>{generatedDraft}</ReactMarkdown>
+              </div>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(generatedDraft);
+                  }}
+                  className="flex-1 py-4 bg-white border border-slate-200 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-slate-50"
+                >
+                  <Copy size={18} /> Copy
+                </button>
+                <button 
+                  onClick={handleSaveDraft}
+                  className="flex-1 py-4 bg-brand-900 text-white rounded-2xl font-bold hover:bg-brand-800"
+                >
+                  Save as Draft
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isReviewModalOpen}
+        onClose={() => setIsReviewModalOpen(false)}
+        title="Review & Send"
+      >
+        <div className="space-y-6">
+          <div>
+             <h4 className="font-bold text-slate-900">{reviewingComm?.title}</h4>
+             <p className="text-xs text-slate-400 mt-1">To: {reviewingComm?.to}</p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Message Body</label>
+            <textarea 
+              defaultValue={reviewingComm?.content || "This draft was AI-generated. Review and edit before sending."}
+              className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 min-h-[250px] font-sans leading-relaxed"
+            />
+          </div>
+          <div className="flex gap-3">
+            <button 
+              onClick={() => setIsReviewModalOpen(false)}
+              className="flex-1 py-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-400 hover:bg-slate-50"
+            >
+              Close
+            </button>
+            <button 
+              onClick={handleMarkAsSent}
+              className="flex-1 py-4 bg-brand-900 text-white rounded-2xl font-bold hover:bg-brand-800 shadow-lg shadow-brand-900/10 flex items-center justify-center gap-2"
+            >
+              <Send size={18} /> Mark as Sent
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { 
   ArrowRight, 
   AlertCircle, 
@@ -6,13 +7,66 @@ import {
   FileText, 
   Send, 
   Users,
-  Plus
+  Plus,
+  Loader2,
+  X,
+  Gavel
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
+import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 import type { Case } from '../types';
+import { askNavigator } from '../lib/gemini';
+import Modal from './ui/Modal';
 
-export default function Dashboard({ appCase }: { appCase: Case }) {
+export default function Dashboard({ 
+  appCase, 
+  onNavigate,
+  onUpdateCase
+}: { 
+  appCase: Case; 
+  onNavigate: (tab: string) => void;
+  onUpdateCase: (updated: Partial<Case>) => void;
+}) {
+  const [isVagueDismissed, setIsVagueDismissed] = useState(false);
+  const [isDraftingChallenge, setIsDraftingChallenge] = useState(false);
+  const [isDraftingChaser, setIsDraftingChaser] = useState(false);
+  const [aiDraft, setAiDraft] = useState<{ title: string; content: string } | null>(null);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  
+  const [showAddProf, setShowAddProf] = useState(false);
+  const [newProf, setNewProf] = useState({ name: '', role: '' });
+  const [team, setTeam] = useState([
+    { name: 'Sarah Chen', role: 'Main Advocate', initial: 'SC', color: 'bg-indigo-50 text-indigo-600' },
+    { name: 'Dr. Sarah Mills', role: 'Educational Psych', initial: 'SM', color: 'bg-emerald-50 text-emerald-600' },
+    { name: 'John Doe', role: 'LA Case Officer', initial: 'JD', color: 'bg-slate-50 text-slate-600' },
+  ]);
+
+  const handleDraftChallenge = async () => {
+    setIsDraftingChallenge(true);
+    const draft = await askNavigator(`Draft a formal letter to Kent County Council challenging the vague provision in Section F of Maya's draft EHCP. The current wording says 'some support as needed' which is not quantified or specified as required by the SEND Code of Practice 2015. Write in the parent's voice — warm but legally firm. Cite the relevant legal standard.`);
+    setAiDraft({ title: 'Section F Challenge Draft', content: draft });
+    setIsDraftingChallenge(false);
+  };
+
+  const handleSendChaser = async () => {
+    setIsDraftingChaser(true);
+    const draft = await askNavigator(`Draft a formal chaser letter to the SEN Team at Kent County Council. The 6-week statutory deadline for responding to our EHCP request has now passed by 2 days. Reference the Children and Families Act 2014 statutory timeline obligations. Tone: firm but professional.`);
+    setAiDraft({ title: 'LA Response Chaser Draft', content: draft });
+    setIsDraftingChaser(false);
+  };
+
+  const handleAddProf = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProf.name || !newProf.role) return;
+    const initials = newProf.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+    const colors = ['bg-blue-50 text-blue-600', 'bg-purple-50 text-purple-600', 'bg-amber-50 text-amber-600', 'bg-rose-50 text-rose-600'];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    setTeam([...team, { ...newProf, initial: initials, color: randomColor }]);
+    setNewProf({ name: '', role: '' });
+    setShowAddProf(false);
+  };
+
   return (
     <div className="space-y-8 pb-12">
       {/* Top Section: Status Cards */}
@@ -73,7 +127,10 @@ export default function Dashboard({ appCase }: { appCase: Case }) {
             <h3 className="text-3xl font-bold text-slate-900">{appCase.comms.length + 12} <span className="text-sm font-medium text-slate-400">Letters/Emails</span></h3>
           </div>
           <div className="mt-4">
-             <button className="text-xs font-bold text-brand-600 flex items-center gap-1 hover:underline">
+             <button 
+              onClick={() => onNavigate('comms')}
+              className="text-xs font-bold text-brand-600 flex items-center gap-1 hover:underline"
+             >
                View recent drafts <ArrowRight size={12} />
              </button>
           </div>
@@ -90,19 +147,39 @@ export default function Dashboard({ appCase }: { appCase: Case }) {
           </div>
           
           <div className="space-y-4">
-            <div className="bg-amber-50 border border-amber-100 p-5 rounded-3xl flex gap-4">
-              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-amber-500 shadow-sm shrink-0">
-                <AlertCircle size={24} />
-              </div>
-              <div className="flex-1">
-                <p className="font-bold text-slate-900">Vague Provision Flagged</p>
-                <p className="text-sm text-slate-600 mt-1">Section F of the draft EHCP uses non-specific language: "some support as needed". This must be quantified.</p>
-                <div className="mt-4 flex gap-3">
-                  <button className="px-4 py-2 bg-amber-500 text-white rounded-xl text-xs font-bold shadow-sm hover:bg-amber-600 transition-all">Draft Challenge</button>
-                  <button className="px-4 py-2 bg-white border border-amber-200 text-amber-700 rounded-xl text-xs font-bold hover:bg-amber-100 transition-all">Dismiss</button>
-                </div>
-              </div>
-            </div>
+            <AnimatePresence>
+              {!isVagueDismissed && (
+                <motion.div 
+                  initial={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0, marginBottom: 0, overflow: 'hidden' }}
+                  className="bg-amber-50 border border-amber-100 p-5 rounded-3xl flex gap-4"
+                >
+                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-amber-500 shadow-sm shrink-0">
+                    <AlertCircle size={24} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-slate-900">Vague Provision Flagged</p>
+                    <p className="text-sm text-slate-600 mt-1">Section F of the draft EHCP uses non-specific language: "some support as needed". This must be quantified.</p>
+                    <div className="mt-4 flex gap-3">
+                      <button 
+                        onClick={handleDraftChallenge}
+                        disabled={isDraftingChallenge}
+                        className="px-4 py-2 bg-amber-500 text-white rounded-xl text-xs font-bold shadow-sm hover:bg-amber-600 transition-all flex items-center gap-2"
+                      >
+                        {isDraftingChallenge ? <Loader2 size={12} className="animate-spin" /> : null}
+                        {isDraftingChallenge ? 'Drafting...' : 'Draft Challenge'}
+                      </button>
+                      <button 
+                        onClick={() => setIsVagueDismissed(true)}
+                        className="px-4 py-2 bg-white border border-amber-200 text-amber-700 rounded-xl text-xs font-bold hover:bg-amber-100 transition-all"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <div className="bg-white border border-[#EADDD7] p-5 rounded-3xl flex gap-4">
               <div className="w-12 h-12 bg-brand-50 rounded-2xl flex items-center justify-center text-brand-600 shadow-sm shrink-0">
@@ -112,7 +189,14 @@ export default function Dashboard({ appCase }: { appCase: Case }) {
                 <p className="font-bold text-slate-900">LA Response Overdue</p>
                 <p className="text-sm text-slate-600 mt-1">The 6-week statutory deadline for a response to your initial request passed 2 days ago.</p>
                 <div className="mt-4 flex gap-3">
-                  <button className="px-4 py-2 bg-brand-900 text-white rounded-xl text-xs font-bold shadow-sm hover:bg-brand-800 transition-all">Send Chaser</button>
+                  <button 
+                    onClick={handleSendChaser}
+                    disabled={isDraftingChaser}
+                    className="px-4 py-2 bg-brand-900 text-white rounded-xl text-xs font-bold shadow-sm hover:bg-brand-800 transition-all flex items-center gap-2"
+                  >
+                    {isDraftingChaser ? <Loader2 size={12} className="animate-spin" /> : null}
+                    {isDraftingChaser ? 'Drafting...' : 'Send Chaser'}
+                  </button>
                 </div>
               </div>
             </div>
@@ -148,11 +232,7 @@ export default function Dashboard({ appCase }: { appCase: Case }) {
               <Users size={18} className="text-slate-400" />
             </div>
             <div className="space-y-4">
-              {[
-                { name: 'Sarah Chen', role: 'Main Advocate', initial: 'SC', color: 'bg-indigo-50 text-indigo-600' },
-                { name: 'Dr. Sarah Mills', role: 'Educational Psych', initial: 'SM', color: 'bg-emerald-50 text-emerald-600' },
-                { name: 'John Doe', role: 'LA Case Officer', initial: 'JD', color: 'bg-slate-50 text-slate-600' },
-              ].map((person, i) => (
+              {team.map((person, i) => (
                 <div key={i} className="flex items-center gap-3">
                   <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm", person.color)}>
                     {person.initial}
@@ -163,9 +243,47 @@ export default function Dashboard({ appCase }: { appCase: Case }) {
                   </div>
                 </div>
               ))}
-              <button className="w-full mt-4 py-3 border border-dashed border-[#EADDD7] rounded-2xl text-slate-400 text-sm font-medium hover:bg-slate-50 transition-colors flex items-center justify-center gap-2">
-                <Plus size={16} /> Add Professional
-              </button>
+
+              <AnimatePresence>
+                {showAddProf && (
+                  <motion.form 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    onSubmit={handleAddProf}
+                    className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3"
+                  >
+                    <input 
+                      autoFocus
+                      type="text" 
+                      placeholder="Name"
+                      value={newProf.name}
+                      onChange={e => setNewProf({...newProf, name: e.target.value})}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                    />
+                    <input 
+                      type="text" 
+                      placeholder="Role (e.g. SALT)"
+                      value={newProf.role}
+                      onChange={e => setNewProf({...newProf, role: e.target.value})}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                    />
+                    <div className="flex gap-2">
+                      <button type="submit" className="flex-1 py-2 bg-brand-900 text-white rounded-xl text-xs font-bold hover:bg-brand-800">Add</button>
+                      <button type="button" onClick={() => setShowAddProf(false)} className="px-3 py-2 bg-white border border-slate-200 text-slate-400 rounded-xl text-xs font-bold hover:bg-slate-50">Cancel</button>
+                    </div>
+                  </motion.form>
+                )}
+              </AnimatePresence>
+
+              {!showAddProf && (
+                <button 
+                  onClick={() => setShowAddProf(true)}
+                  className="w-full mt-4 py-3 border border-dashed border-[#EADDD7] rounded-2xl text-slate-400 text-sm font-medium hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Plus size={16} /> Add Professional
+                </button>
+              )}
             </div>
           </div>
 
@@ -174,13 +292,58 @@ export default function Dashboard({ appCase }: { appCase: Case }) {
             <div className="relative z-10">
               <h3 className="text-xl font-bold mb-2">Upgrade for Tribunal Mode</h3>
               <p className="text-sm text-brand-200 mb-6">Facing a tribunal? Unlock our specialized AI coach and bundle builder.</p>
-              <button className="w-full py-3 bg-white text-brand-900 rounded-2xl text-sm font-bold shadow-lg shadow-black/10 hover:bg-brand-50 transition-all flex items-center justify-center gap-2">
+              <button 
+                onClick={() => setIsUpgradeModalOpen(true)}
+                className="w-full py-3 bg-white text-brand-900 rounded-2xl text-sm font-bold shadow-lg shadow-black/10 hover:bg-brand-50 transition-all flex items-center justify-center gap-2"
+              >
                  Get Started <ArrowRight size={16} />
               </button>
             </div>
           </div>
         </div>
       </div>
+
+      <Modal 
+        isOpen={!!aiDraft} 
+        onClose={() => setAiDraft(null)} 
+        title={aiDraft?.title || 'Draft Letter'}
+      >
+        <div className="prose prose-sm max-w-none">
+          <ReactMarkdown>{aiDraft?.content || ''}</ReactMarkdown>
+        </div>
+        <div className="mt-8 flex gap-3">
+          <button 
+            onClick={() => {
+              navigator.clipboard.writeText(aiDraft?.content || '');
+              setAiDraft(null);
+            }}
+            className="flex-1 py-4 bg-brand-900 text-white rounded-2xl font-bold hover:bg-brand-800 transition-all shadow-lg shadow-brand-900/10"
+          >
+            Copy to Clipboard
+          </button>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+        title="Tribunal Mode — Coming Soon"
+      >
+        <div className="text-center p-6">
+          <div className="w-16 h-16 bg-brand-50 text-brand-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <Gavel size={32} />
+          </div>
+          <p className="text-slate-600 leading-relaxed">
+            Full tribunal preparation tools are coming soon. You'll be notified when this feature launches.
+          </p>
+          <button 
+            onClick={() => setIsUpgradeModalOpen(false)}
+            className="mt-8 w-full py-4 bg-brand-900 text-white rounded-2xl font-bold hover:bg-brand-800"
+          >
+            Close
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }
