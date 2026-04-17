@@ -60,11 +60,6 @@ export default function App() {
 
   // Global UI State
   const [isAddResourceOpen, setIsAddResourceOpen] = useState(false);
-
-  useEffect(() => {
-    const tabLabel = tabs.find(t => t.id === activeTab)?.label ?? 'Navigator';
-    document.title = `${tabLabel} — ${appCase.childName}'s Case | EHCP Navigator`;
-  }, [activeTab, appCase.childName]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [toast, setToast] = useState<{ message: string; isVisible: boolean }>({ message: '', isVisible: false });
@@ -91,6 +86,11 @@ export default function App() {
     { id: 'professionals', label: 'Team', icon: Users },
     { id: 'tribunal', label: 'Tribunal Prep', icon: Gavel },
   ];
+
+  useEffect(() => {
+    const tabLabel = tabs.find(t => t.id === activeTab)?.label ?? 'Navigator';
+    document.title = `${tabLabel} — ${appCase.childName}'s Case | EHCP Navigator`;
+  }, [activeTab, appCase.childName]);
 
   return (
     <div className="flex h-screen bg-[#FDF8F6] text-slate-900 overflow-hidden font-sans">

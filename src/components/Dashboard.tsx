@@ -95,7 +95,8 @@ export default function Dashboard({
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
   };
 
-  const daysLeft = getDaysRemaining(appCase.nextDeadline);
+  const rawDaysLeft = getDaysRemaining(appCase.nextDeadline);
+  const daysLeft = isNaN(rawDaysLeft) ? 14 : rawDaysLeft;
   const urgencyColor = daysLeft <= 7 
     ? 'text-red-600 bg-red-50 border-red-100' 
     : daysLeft <= 21 

@@ -160,9 +160,9 @@ export default function NavigatorChat({ appCase }: { appCase: Case }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
               onClick={scrollToBottom}
-              className="fixed bottom-32 left-1/2 -translate-x-1/2 md:absolute md:bottom-32 bg-brand-900 text-white p-3 rounded-full shadow-xl z-50 hover:bg-brand-800 transition-all"
+              className="absolute bottom-8 right-8 bg-white border border-[#EADDD7] text-slate-400 hover:text-brand-600 p-2.5 rounded-full shadow-lg z-10 hover:bg-slate-50 transition-all"
             >
-              <ChevronDown size={20} />
+              <ChevronDown size={18} />
             </motion.button>
           )}
         </AnimatePresence>

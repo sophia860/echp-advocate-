@@ -1,11 +1,9 @@
 // src/lib/flowr.ts
 
-const FLOWR_BASE_URL = 'https://api.apps-encodian.com';
-const FLOWR_API_KEY = process.env.ENCODIAN_API_KEY!;
+const FLOWR_PROXY_URL = '/api/flowr';
 
 const flowrHeaders = {
   'Content-Type': 'application/json',
-  'Ocp-Apim-Subscription-Key': FLOWR_API_KEY,
 };
 
 // â”€â”€â”€ Utility: Convert a File object to base64 string â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -64,7 +62,7 @@ export async function extractTextFromFile(file: File): Promise<string> {
       ? '/api/v1/pdf/utilities/extract-text'
       : '/api/v1/word/utilities/extract-text';
 
-    const response = await fetch(`${FLOWR_BASE_URL}${endpoint}`, {
+    const response = await fetch(`${FLOWR_PROXY_URL}${endpoint}`, {
       method: 'POST',
       headers: flowrHeaders,
       body: JSON.stringify({
@@ -90,7 +88,7 @@ export async function extractTextFromFile(file: File): Promise<string> {
 // Used to export AI-drafted letters as formatted PDFs.
 export async function htmlToPdf(html: string, filename: string): Promise<void> {
   try {
-    const response = await fetch(`${FLOWR_BASE_URL}/api/v1/pdf/convert/html`, {
+    const response = await fetch(`${FLOWR_PROXY_URL}/api/v1/pdf/convert/html`, {
       method: 'POST',
       headers: flowrHeaders,
       body: JSON.stringify({
@@ -124,7 +122,7 @@ export async function mergePdfs(
   outputFilename: string
 ): Promise<void> {
   try {
-    const response = await fetch(`${FLOWR_BASE_URL}/api/v1/pdf/utilities/merge`, {
+    const response = await fetch(`${FLOWR_PROXY_URL}/api/v1/pdf/utilities/merge`, {
       method: 'POST',
       headers: flowrHeaders,
       body: JSON.stringify({
@@ -153,7 +151,7 @@ export async function mergePdfs(
 // Returns a key/value object of extracted fields.
 export async function extractStructuredData(base64File: string, fileName: string): Promise<Record<string, string>> {
   try {
-    const response = await fetch(`${FLOWR_BASE_URL}/api/v1/pdf/utilities/extract-form-data`, {
+    const response = await fetch(`${FLOWR_PROXY_URL}/api/v1/pdf/utilities/extract-form-data`, {
       method: 'POST',
       headers: flowrHeaders,
       body: JSON.stringify({
@@ -294,4 +292,27 @@ export function buildLetterHtml(params: {
     </body>
     </html>
   `;
+}
+
+// â”€â”€â”€ Utility: Convert HTML to PDF and return as base64 (no download) â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Used when the PDF needs to be merged with others before downloading.
+export async function htmlToPdfBase64(html: string, filename: string): Promise<string> {
+  const response = await fetch(`${FLOWR_PROXY_URL}/api/v1/pdf/convert/html`, {
+    method: 'POST',
+    headers: flowrHeaders,
+    body: JSON.stringify({
+      HtmlContent: html,
+      FileName: filename,
+      PageSize: 'A4',
+      MarginTop: '25mm',
+      MarginBottom: '25mm',
+      MarginLeft: '20mm',
+      MarginRight: '20mm',
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`Flowr HTML-to-PDF failed: ${response.status} ${response.statusText}`);
+  }
+  const data = await response.json();
+  return data.FileContent || data.fileContent;
 }

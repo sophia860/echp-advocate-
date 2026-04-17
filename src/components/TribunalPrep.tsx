@@ -22,7 +22,7 @@ import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 import type { Case } from '../types';
 import { askNavigator } from '../lib/gemini';
-import { htmlToPdf, mergePdfs, downloadBase64File } from '../lib/flowr';
+import { htmlToPdf, mergePdfs, downloadBase64File, htmlToPdfBase64 } from '../lib/flowr';
 
 export default function TribunalPrep({ appCase, onToast }: { appCase: Case; onToast: (msg: string) => void }) {
   const [isUnlocked, setIsUnlocked] = useState(false);
@@ -131,26 +131,7 @@ export default function TribunalPrep({ appCase, onToast }: { appCase: Case; onTo
         </body></html>
       `;
 
-      const coverResponse = await fetch('https://api.apps-encodian.com/api/v1/pdf/convert/html', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Ocp-Apim-Subscription-Key': process.env.ENCODIAN_API_KEY!,
-        },
-        body: JSON.stringify({
-          HtmlContent: coverHtml,
-          FileName: 'cover.pdf',
-          PageSize: 'A4',
-          MarginTop: '25mm',
-          MarginBottom: '25mm',
-          MarginLeft: '20mm',
-          MarginRight: '20mm',
-        }),
-      });
-
-      if (!coverResponse.ok) throw new Error('Cover page generation failed');
-      const coverData = await coverResponse.json();
-      const coverBase64 = coverData.FileContent || coverData.fileContent;
+      const coverBase64 = await htmlToPdfBase64(coverHtml, 'cover.pdf');
 
       // Step 2: Collect all ready document files
       const filesToMerge: { content: string; name: string }[] = [
@@ -168,25 +149,11 @@ export default function TribunalPrep({ appCase, onToast }: { appCase: Case; onTo
             <div>${matchingDoc.content.replace(/\n/g, '<br/>')}</div>
           </body></html>`;
 
-          const docResponse = await fetch('https://api.apps-encodian.com/api/v1/pdf/convert/html', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Ocp-Apim-Subscription-Key': process.env.ENCODIAN_API_KEY!,
-            },
-            body: JSON.stringify({
-              HtmlContent: docHtml,
-              FileName: `${matchingDoc.name}.pdf`,
-              PageSize: 'A4',
-            }),
-          });
-
-          if (docResponse.ok) {
-            const docData = await docResponse.json();
-            filesToMerge.push({
-              content: docData.FileContent || docData.fileContent,
-              name: `${matchingDoc.name}.pdf`,
-            });
+          try {
+            const docBase64 = await htmlToPdfBase64(docHtml, `${matchingDoc.name}.pdf`);
+            filesToMerge.push({ content: docBase64, name: `${matchingDoc.name}.pdf` });
+          } catch {
+            // skip this doc silently if conversion fails
           }
         }
       }

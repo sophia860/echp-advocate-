@@ -192,11 +192,9 @@ export default function ProfessionalFinder({ onToast }: { onToast: (msg: string)
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Est. Cost</p>
                       <p className="font-bold text-slate-900">{prof.price}</p>
                    </div>
-                   <button 
-                     className="mt-4 px-4 py-2.5 bg-brand-900 text-white rounded-xl text-xs font-bold hover:bg-brand-800 transition-all flex items-center gap-2 shadow-lg shadow-brand-900/10"
-                   >
+                   <div className="mt-4 px-4 py-2.5 bg-brand-900 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-brand-900/10 pointer-events-none">
                       Request Contact <ChevronRight size={14} />
-                   </button>
+                   </div>
                 </div>
               </motion.div>
             ))}
