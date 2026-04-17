@@ -28,16 +28,31 @@ async function startServer() {
       let result: string;
       switch (action) {
         case "askNavigator":
-          result = await askNavigator(prompt ?? "", history ?? []);
+          if (typeof prompt !== "string" || !prompt.trim()) {
+            return res.status(400).json({ error: "askNavigator requires a non-empty prompt string" });
+          }
+          result = await askNavigator(prompt, Array.isArray(history) ? history : []);
           break;
         case "analyzeDocument":
-          result = await analyzeDocument(docContent ?? "", docType ?? "");
+          if (typeof docContent !== "string" || !docContent.trim()) {
+            return res.status(400).json({ error: "analyzeDocument requires a non-empty docContent string" });
+          }
+          if (typeof docType !== "string" || !docType.trim()) {
+            return res.status(400).json({ error: "analyzeDocument requires a non-empty docType string" });
+          }
+          result = await analyzeDocument(docContent, docType);
           break;
         case "scanProvision":
-          result = await scanProvision(docContent ?? "");
+          if (typeof docContent !== "string" || !docContent.trim()) {
+            return res.status(400).json({ error: "scanProvision requires a non-empty docContent string" });
+          }
+          result = await scanProvision(docContent);
           break;
         case "getNextSteps":
-          result = await getNextSteps(appCase ?? {});
+          if (!appCase || typeof appCase !== "object") {
+            return res.status(400).json({ error: "getNextSteps requires an appCase object" });
+          }
+          result = await getNextSteps(appCase);
           break;
         default:
           return res.status(400).json({ error: "Unknown AI action" });

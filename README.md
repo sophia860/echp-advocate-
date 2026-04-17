@@ -36,7 +36,7 @@ The app uses an Express server that serves the Vite-built React frontend and pro
 4. Set **Start Command**: `npm start`
 5. Set **Port**: `3000`
 
-The included `Procfile` handles the build + start sequence automatically for Heroku-compatible platforms.
+The `Procfile` contains only `npm start` (the start command). The build step should be configured separately in your platform's build settings, as shown above.
 
 ### Scripts
 

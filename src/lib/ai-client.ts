@@ -9,7 +9,14 @@ async function callAI(action: string, params: Record<string, unknown>): Promise<
   });
 
   if (!response.ok) {
-    throw new Error(`AI request failed: ${response.status}`);
+    let detail = response.statusText;
+    try {
+      const body = await response.json();
+      if (body?.error) detail = body.error;
+    } catch {
+      // ignore JSON parse failure; use statusText
+    }
+    throw new Error(`AI request failed (${response.status}): ${detail}`);
   }
 
   const data = await response.json();
