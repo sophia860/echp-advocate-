@@ -1,6 +1,10 @@
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey) {
+  console.warn("GEMINI_API_KEY is not defined. AI features may not work.");
+}
+const ai = new GoogleGenAI({ apiKey: apiKey || "" });
 
 const SYSTEM_PROMPT = `
 You are the EHCP Navigator AI — a specialist case companion for 
@@ -33,7 +37,7 @@ Always write in the parent's voice (warm but firm) when drafting letters.
 export async function askNavigator(prompt: string, history: { role: string; parts: { text: string }[] }[] = []) {
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-3-flash-preview",
       contents: [
         ...history,
         { role: "user", parts: [{ text: prompt }] }
@@ -66,7 +70,7 @@ ${docContent}
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-3-flash-preview",
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: {
         systemInstruction: SYSTEM_PROMPT,
@@ -76,5 +80,77 @@ ${docContent}
   } catch (error) {
     console.error("Gemini API Error:", error);
     return "Error analyzing document.";
+  }
+}
+
+export async function scanProvision(docContent: string) {
+  const prompt = `
+    Focus ONLY on Section F (Provision) of this EHCP draft.
+    Identify all instances of non-statutory "vague wording".
+    
+    Vague wording includes phrases like:
+    - "would benefit from"
+    - "opportunities for"
+    - "as appropriate"
+    - "regular"
+    - "as required"
+    - "access to"
+    - "where possible"
+    
+    For each instance found:
+    1. QUOTE the vague phrase.
+    2. EXPLAIN why it is legally weak (non-quantified/non-specified).
+    3. SUGGEST a statutory replacement that is specific and quantified.
+    
+    Document Text:
+    ${docContent}
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config: {
+        systemInstruction: SYSTEM_PROMPT,
+      }
+    });
+    return response.text ?? "No vague wording identified in this section.";
+  } catch (error) {
+    console.error("Gemini API Error:", error);
+    return "Error scanning provision.";
+  }
+}
+
+export async function getNextSteps(appCase: any) {
+  const prompt = `
+    Based on the following case data, suggest the top 3 high-priority "Next Steps" for the parent.
+    
+    Child: ${appCase.childName} (${appCase.age} years old)
+    LA: ${appCase.laName}
+    Current Stage: ${appCase.currentStage}
+    Next Deadline: ${appCase.nextDeadline} (${appCase.deadlineLabel})
+    Documents: ${appCase.docs.length} uploaded
+    Communications: ${appCase.comms.length} records
+    
+    Consider the statutory timelines in the SEND Code of Practice.
+    If they are near a deadline, flag it.
+    If they just received a draft, suggest reviewing Section F.
+    If they are at "Pre-request", suggest gathering EP evidence.
+    
+    Format the response as 3 clear, actionable bullet points.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config: {
+        systemInstruction: SYSTEM_PROMPT,
+      }
+    });
+    return response.text ?? "Continue monitoring timelines and gathering evidence.";
+  } catch (error) {
+    console.error("Gemini API Error:", error);
+    return "Review your case dashboard for current deadlines.";
   }
 }

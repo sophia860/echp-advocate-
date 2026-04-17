@@ -18,9 +18,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 import type { Case } from '../types';
-import { askNavigator } from '../lib/gemini';
+import { askNavigator, getNextSteps } from '../lib/gemini';
 import { htmlToPdf, buildLetterHtml } from '../lib/flowr';
 import Modal from './ui/Modal';
+import AiButton from './ui/AiButton';
+import { Sparkles } from 'lucide-react';
 
 export default function Dashboard({ 
   appCase, 
@@ -37,6 +39,8 @@ export default function Dashboard({
   const [aiDraft, setAiDraft] = useState<{ title: string; content: string } | null>(null);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [isAnalyzingStrategy, setIsAnalyzingStrategy] = useState(false);
+  const [strategyResult, setStrategyResult] = useState<string | null>(null);
   
   const [showAddProf, setShowAddProf] = useState(false);
   const [newProf, setNewProf] = useState({ name: '', role: '' });
@@ -88,6 +92,13 @@ export default function Dashboard({
     setTeam([...team, { ...newProf, initial: initials, color: randomColor }]);
     setNewProf({ name: '', role: '' });
     setShowAddProf(false);
+  };
+
+  const handleAnalyzeStrategy = async () => {
+    setIsAnalyzingStrategy(true);
+    const result = await getNextSteps(appCase);
+    setStrategyResult(result);
+    setIsAnalyzingStrategy(false);
   };
 
   const getDaysRemaining = (deadline: string) => {
@@ -295,6 +306,51 @@ export default function Dashboard({
 
         {/* Professional Team Sidebar */}
         <div className="space-y-6">
+          {/* AI Strategist Card */}
+          <div className="bg-brand-50 border border-brand-100 p-6 rounded-[2.5rem] shadow-sm overflow-hidden relative group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-brand-100/50 rounded-full -mr-12 -mt-12 blur-2xl group-hover:scale-150 transition-transform duration-1000" />
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-brand-900 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                  <Sparkles size={20} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800">Case Strategist</h3>
+                  <p className="text-[10px] text-brand-600 font-bold uppercase tracking-wider">AI Powered Insights</p>
+                </div>
+              </div>
+              
+              <div className="mb-6">
+                <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                  {strategyResult ? (
+                    <div className="prose prose-sm leading-tight text-slate-700">
+                      <ReactMarkdown>{strategyResult}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    "Analyzing your current documents and statutory deadlines to suggest the best route forward."
+                  )}
+                </p>
+              </div>
+
+              {!strategyResult ? (
+                <AiButton 
+                  onClick={handleAnalyzeStrategy} 
+                  isLoading={isAnalyzingStrategy}
+                  className="w-full py-3 justify-center text-xs"
+                >
+                  Analyze Next Steps
+                </AiButton>
+              ) : (
+                <button 
+                  onClick={() => setStrategyResult(null)}
+                  className="w-full py-3 bg-white border border-brand-200 text-brand-700 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-brand-50 transition-all"
+                >
+                  Recalculate Strategy
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="bg-white p-6 rounded-[2.5rem] border border-[#EADDD7] shadow-sm">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-bold">Your Team</h3>

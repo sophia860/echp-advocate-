@@ -16,7 +16,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 import type { Case, CaseDoc } from '../types';
-import { analyzeDocument, askNavigator } from '../lib/gemini';
+import { analyzeDocument, askNavigator, scanProvision } from '../lib/gemini';
 import { extractTextFromFile, extractStructuredData } from '../lib/flowr';
 import Modal from './ui/Modal';
 import AiButton from './ui/AiButton';
@@ -35,6 +35,8 @@ export default function DocumentAnalysis({
   const [analysisResult, setAnalysisResult] = useState<string | null>(null);
   const [isDraftingResponse, setIsDraftingResponse] = useState(false);
   const [draftResponse, setDraftResponse] = useState<string | null>(null);
+  const [isScanningProvision, setIsScanningProvision] = useState(false);
+  const [provisionScanResult, setProvisionScanResult] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -140,6 +142,14 @@ export default function DocumentAnalysis({
     const draft = await askNavigator(prompt);
     setDraftResponse(draft);
     setIsDraftingResponse(false);
+  };
+
+  const handleScanProvision = async () => {
+    if (!selectedDoc) return;
+    setIsScanningProvision(true);
+    const result = await scanProvision(selectedDoc.content || '');
+    setProvisionScanResult(result);
+    setIsScanningProvision(false);
   };
 
   const statusConfig = {
@@ -357,20 +367,31 @@ export default function DocumentAnalysis({
                 )}
               </div>
 
-              <div className="p-6 bg-slate-50/50 border-t border-[#EADDD7] grid grid-cols-2 gap-4">
-                <AiButton 
-                  onClick={handleDraftResponse} 
-                  isLoading={isDraftingResponse}
-                  className="py-3 px-4 w-full"
-                >
-                  Draft Response
-                </AiButton>
-                <button 
-                  onClick={() => onToast("✓ Added to tribunal bundle")}
-                  className="py-3 px-4 bg-white border border-[#EADDD7] text-slate-700 rounded-2xl text-sm font-bold hover:bg-white hover:border-brand-300 transition-all flex items-center justify-center gap-2"
-                >
-                  Add to Bundle
-                </button>
+              <div className="p-6 bg-slate-50/50 border-t border-[#EADDD7] flex flex-col gap-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <AiButton 
+                    onClick={handleDraftResponse} 
+                    isLoading={isDraftingResponse}
+                    className="py-3 px-4 w-full"
+                  >
+                    Draft Response
+                  </AiButton>
+                  <button 
+                    onClick={() => onToast("✓ Added to tribunal bundle")}
+                    className="py-3 px-4 bg-white border border-[#EADDD7] text-slate-700 rounded-2xl text-sm font-bold hover:bg-white hover:border-brand-300 transition-all flex items-center justify-center gap-2"
+                  >
+                    Add to Bundle
+                  </button>
+                </div>
+                {selectedDoc.type === 'Draft Plan' && (
+                  <AiButton 
+                    onClick={handleScanProvision} 
+                    isLoading={isScanningProvision}
+                    className="py-3 px-4 w-full bg-white border border-brand-200 text-brand-700 hover:bg-brand-50 shadow-none"
+                  >
+                    Scan Section F (Quantification)
+                  </AiButton>
+                )}
               </div>
             </motion.div>
           )}
@@ -439,6 +460,30 @@ export default function DocumentAnalysis({
         >
           Copy to Clipboard
         </button>
+      </Modal>
+
+      <Modal
+        isOpen={!!provisionScanResult}
+        onClose={() => setProvisionScanResult(null)}
+        title="Section F Provision Scan"
+      >
+        <div className="space-y-4">
+          <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl flex gap-3">
+             <AlertCircle size={20} className="text-amber-600 shrink-0" />
+             <p className="text-xs text-amber-800 font-medium italic">
+               LA's often use "vague language" to avoid committing resources. Statutory provision must be specific and quantified.
+             </p>
+          </div>
+          <div className="prose prose-sm max-w-none">
+            <ReactMarkdown>{provisionScanResult || ''}</ReactMarkdown>
+          </div>
+          <button 
+            onClick={() => setProvisionScanResult(null)}
+            className="mt-6 w-full py-4 bg-brand-900 text-white rounded-2xl font-bold hover:bg-brand-800"
+          >
+            Finished Review
+          </button>
+        </div>
       </Modal>
 
       <style>{`
