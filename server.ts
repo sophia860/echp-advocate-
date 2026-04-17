@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
+import { askNavigator, analyzeDocument, scanProvision, getNextSteps } from "./src/lib/gemini.js";
 
 dotenv.config();
 
@@ -14,6 +15,54 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(express.json({ limit: '50mb' }));
+
+  // Proxy for Gemini AI API (keeps GEMINI_API_KEY server-side)
+  app.post("/api/ai", async (req, res) => {
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({ error: "Gemini API key not configured on server" });
+    }
+
+    const { action, prompt, history, docContent, docType, appCase } = req.body;
+
+    try {
+      let result: string;
+      switch (action) {
+        case "askNavigator":
+          if (typeof prompt !== "string" || !prompt.trim()) {
+            return res.status(400).json({ error: "askNavigator requires a non-empty prompt string" });
+          }
+          result = await askNavigator(prompt, Array.isArray(history) ? history : []);
+          break;
+        case "analyzeDocument":
+          if (typeof docContent !== "string" || !docContent.trim()) {
+            return res.status(400).json({ error: "analyzeDocument requires a non-empty docContent string" });
+          }
+          if (typeof docType !== "string" || !docType.trim()) {
+            return res.status(400).json({ error: "analyzeDocument requires a non-empty docType string" });
+          }
+          result = await analyzeDocument(docContent, docType);
+          break;
+        case "scanProvision":
+          if (typeof docContent !== "string" || !docContent.trim()) {
+            return res.status(400).json({ error: "scanProvision requires a non-empty docContent string" });
+          }
+          result = await scanProvision(docContent);
+          break;
+        case "getNextSteps":
+          if (!appCase || typeof appCase !== "object") {
+            return res.status(400).json({ error: "getNextSteps requires an appCase object" });
+          }
+          result = await getNextSteps(appCase);
+          break;
+        default:
+          return res.status(400).json({ error: "Unknown AI action" });
+      }
+      res.json({ result });
+    } catch (error) {
+      console.error("AI proxy error:", error);
+      res.status(500).json({ error: "AI request failed" });
+    }
+  });
 
   // Proxy for Encodian Flowr API
   app.post("/api/flowr/*", async (req, res) => {

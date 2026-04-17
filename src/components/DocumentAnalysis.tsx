@@ -16,7 +16,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 import type { Case, CaseDoc } from '../types';
-import { analyzeDocument, askNavigator, scanProvision } from '../lib/gemini';
+import { analyzeDocument, askNavigator, scanProvision } from '../lib/ai-client';
 import { extractTextFromFile, extractStructuredData } from '../lib/flowr';
 import Modal from './ui/Modal';
 import AiButton from './ui/AiButton';

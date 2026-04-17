@@ -17,7 +17,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 import type { Case } from '../types';
-import { askNavigator } from '../lib/gemini';
+import { askNavigator } from '../lib/ai-client';
 
 export default function NavigatorChat({ appCase }: { appCase: Case }) {
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([
