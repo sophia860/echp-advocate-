@@ -53,9 +53,9 @@ export default function Communications({
 
   const handleGenerate = async () => {
     setIsGenerating(true);
-    let prompt = `Draft a formal ${selectedLetterType} letter to the SEN Team at Kent County Council regarding Maya's EHCP process.`;
+    let prompt = `Draft a formal ${selectedLetterType} letter to the SEN Team at ${appCase.laName} regarding ${appCase.childName}'s EHCP process.`;
     if (selectedLetterType === 'Custom') {
-      prompt = `Draft a formal letter to Kent County Council about Maya's EHCP case based on these details: ${customDescription}`;
+      prompt = `Draft a formal letter to ${appCase.laName} about ${appCase.childName}'s EHCP case based on these details: ${customDescription}`;
     }
     const result = await askNavigator(prompt);
     setGeneratedDraft(result);
@@ -71,7 +71,7 @@ export default function Communications({
         laName: appCase.laName,
         letterTitle: selectedLetterType,
         body: generatedDraft,
-        senderName: 'Sarah (Maya\'s Parent)',
+        senderName: `Sarah (${appCase.childName}'s Parent)`,
       });
       await htmlToPdf(html, `${selectedLetterType.replace(/\s+/g, '_')}.pdf`);
     } catch (error) {

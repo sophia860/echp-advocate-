@@ -50,14 +50,14 @@ export default function DocumentAnalysis({
     setIsAnalyzing(true);
     setAnalysisResult(null);
 
-    const content = doc.content || `Draft EHCP for Maya. Section F provision: "Maya will have access to support in the classroom as appropriate to her needs. The school will provide some sensory equipment where possible."`;
+    const content = doc.content || `Draft EHCP for ${appCase.childName}. Section F provision: "${appCase.childName} will have access to support in the classroom as appropriate to her needs. The school will provide some sensory equipment where possible."`;
     
     // Run Gemini analysis and Flowr extraction in parallel
     const [result] = await Promise.all([
       analyzeDocument(content, doc.type),
       // Only run structured extraction if the doc has real uploaded content
       doc.content
-        ? extractStructuredData(btoa(doc.content), doc.name)
+        ? extractStructuredData(btoa(new TextEncoder().encode(doc.content).reduce((s, c) => s + String.fromCharCode(c), '')), doc.name)
             .then(fields => {
               if (Object.keys(fields).length > 0) {
                 // Update the doc with structured data

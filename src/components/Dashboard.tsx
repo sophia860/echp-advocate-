@@ -52,14 +52,14 @@ export default function Dashboard({
 
   const handleDraftChallenge = async () => {
     setIsDraftingChallenge(true);
-    const draft = await askNavigator(`Draft a formal letter to Kent County Council challenging the vague provision in Section F of Maya's draft EHCP. The current wording says 'some support as needed' which is not quantified or specified as required by the SEND Code of Practice 2015. Write in the parent's voice — warm but legally firm. Cite the relevant legal standard.`);
+    const draft = await askNavigator(`Draft a formal letter to ${appCase.laName} challenging the vague provision in Section F of ${appCase.childName}'s draft EHCP. The current wording says 'some support as needed' which is not quantified or specified as required by the SEND Code of Practice 2015. Write in the parent's voice — warm but legally firm. Cite the relevant legal standard.`);
     setAiDraft({ title: 'Section F Challenge Draft', content: draft });
     setIsDraftingChallenge(false);
   };
 
   const handleSendChaser = async () => {
     setIsDraftingChaser(true);
-    const draft = await askNavigator(`Draft a formal chaser letter to the SEN Team at Kent County Council. The 6-week statutory deadline for responding to our EHCP request has now passed by 2 days. Reference the Children and Families Act 2014 statutory timeline obligations. Tone: firm but professional.`);
+    const draft = await askNavigator(`Draft a formal chaser letter to the SEN Team at ${appCase.laName}. The 6-week statutory deadline for responding to our EHCP request has now passed by 2 days. Reference the Children and Families Act 2014 statutory timeline obligations. Tone: firm but professional.`);
     setAiDraft({ title: 'LA Response Chaser Draft', content: draft });
     setIsDraftingChaser(false);
   };
@@ -73,7 +73,7 @@ export default function Dashboard({
         laName: appCase.laName,
         letterTitle: aiDraft.title,
         body: aiDraft.content,
-        senderName: 'Sarah (Maya\'s Parent)',
+        senderName: `Sarah (${appCase.childName}'s Parent)`,
       });
       await htmlToPdf(html, `${aiDraft.title.replace(/\s+/g, '_')}.pdf`);
     } catch (error) {

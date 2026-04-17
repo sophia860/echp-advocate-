@@ -27,6 +27,7 @@ export default function NavigatorChat({ appCase }: { appCase: Case }) {
   const [isLoading, setIsLoading] = useState(false);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -41,9 +42,7 @@ export default function NavigatorChat({ appCase }: { appCase: Case }) {
   }, []);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const handleSend = async () => {
@@ -195,7 +194,7 @@ export default function NavigatorChat({ appCase }: { appCase: Case }) {
             </div>
           </div>
         )}
-        <div ref={scrollRef} />
+        <div ref={bottomRef} />
       </div>
 
       {/* Suggestion Chips */}
