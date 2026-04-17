@@ -55,10 +55,12 @@ export default function NavigatorChat({ appCase }: { appCase: Case }) {
     setIsLoading(true);
 
     // Prepare history for Gemini
-    const history = messages.map(m => ({
-      role: m.role === 'user' ? 'user' : 'model',
-      parts: [{ text: m.content }]
-    }));
+    const history = messages
+      .filter((m, i) => !(i === 0 && m.role === 'assistant'))
+      .map(m => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: m.content }]
+      }));
 
     const response = await askNavigator(
       `Context: Child is ${appCase.childName}, Local Authority is ${appCase.laName}. Query: ${userMsg}`, 

@@ -42,7 +42,7 @@ export async function askNavigator(prompt: string, history: { role: string; part
         systemInstruction: SYSTEM_PROMPT,
       }
     });
-    return response.text;
+    return response.text ?? "I received a response but couldn't read the content. Please try again.";
   } catch (error) {
     console.error("Gemini API Error:", error);
     return "I'm sorry, I'm having trouble connecting right now. Please try again.";
@@ -72,7 +72,7 @@ ${docContent}
         systemInstruction: SYSTEM_PROMPT,
       }
     });
-    return response.text;
+    return response.text ?? "Analysis returned an empty response. Please try again.";
   } catch (error) {
     console.error("Gemini API Error:", error);
     return "Error analyzing document.";
