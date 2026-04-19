@@ -18,7 +18,28 @@
   --color-brand-900: #4a332a;
 }
 
+@layer base {
+  body {
+    @apply bg-[#FAFAFA] text-slate-900 antialiased selection:bg-brand-200 selection:text-brand-900;
+  }
+}
+
 @layer utilities {
+  .glass {
+    @apply bg-white/70 backdrop-blur-md border border-white/20;
+  }
+  .card-shadow {
+    @apply shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-shadow duration-500;
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    @apply w-1.5;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+  }
   .prose-sm {
     @apply text-sm leading-relaxed;
   }
@@ -30,11 +51,5 @@
   }
   .prose li {
     @apply mb-1;
-  }
-  .prose-invert-user {
-    @apply text-white;
-  }
-  .prose-invert-user p {
-    @apply text-white/90;
   }
 }

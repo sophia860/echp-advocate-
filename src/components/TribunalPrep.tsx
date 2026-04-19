@@ -21,14 +21,14 @@ import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 import type { Case } from '../types';
-import { askNavigator } from '../lib/ai-client';
+import { askNavigator } from '../lib/gemini';
 import { htmlToPdf, mergePdfs, downloadBase64File, htmlToPdfBase64 } from '../lib/flowr';
 
 export default function TribunalPrep({ appCase, onToast }: { appCase: Case; onToast: (msg: string) => void }) {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [activeSession, setActiveSession] = useState(false);
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: `"Mrs. Sarah, you've mentioned in your statement that Maya experiences 'high-level anxiety' during transition. Can you specify how this manifests specifically at the school gate, and why you feel the current provision is insufficient to address this?"` }
+  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([
+    { role: 'assistant', content: `Hello. I am the Panel Chair. We are here to discuss ${appCase.childName}'s EHCP. To begin, you've mentioned in your statement that ${appCase.childName} experiences 'high-level anxiety' during transitions. Can you specify how this manifests specifically at the school gate, and why you feel the current provision is insufficient to address this?` }
   ]);
   const [userInput, setUserInput] = useState('');
   const [isAiResponding, setIsAiResponding] = useState(false);
@@ -42,23 +42,39 @@ export default function TribunalPrep({ appCase, onToast }: { appCase: Case; onTo
     { id: '3', title: 'School Provision Log', status: 'needed', date: '-' },
     { id: '4', title: 'Home Evidence Video', status: 'needed', date: '-' },
   ]);
-
+  
   const handleSendResponse = async () => {
     if (!userInput.trim() || isAiResponding) return;
     
-    const newMessages = [...messages, { role: 'user', content: userInput }];
+    const newMessages: { role: 'user' | 'assistant'; content: string }[] = [...messages, { role: 'user', content: userInput }];
     setMessages(newMessages);
     setUserInput('');
     setIsAiResponding(true);
 
-    const prompt = `You are an expert Tribunal Prep Coach for families in England going to a SENDIST tribunal. 
+    const history = newMessages
+      .filter((m, i) => !(i === 0 && m.role === 'assistant'))
+      .map(m => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: m.content }]
+      }));
+
+    const prompt = `
+      You are an expert Tribunal Prep Coach for families in England going to a SENDIST tribunal. 
+      Case Context:
+      - Child: ${appCase.childName} (Age ${appCase.age})
+      - LA: ${appCase.laName}
+      - Current Stage: ${appCase.currentStage}
+      
       The parent just responded to your question: "${userInput}". 
-      1. Provide a brief encouraging but direct "Coach Insight" on how their answer would be perceived by a panel (is it specific enough? does it cite evidence?).
-      2. Then, play the role of the LA Representative or the Panel Chair and ask a follow-up cross-examination style question. 
-      Keep it professional and helpful.`;
+      
+      1. Provide a brief encouraging but direct "Coach Insight" on how their answer would be perceived by a panel (is it specific enough? does it cite evidence? is it legally relevant?).
+      2. Then, play the role of the LA Representative or the Panel Chair and ask a follow-up cross-examination style question that challenges their position or asks for quantification. 
+      
+      Keep it professional, helpful, and firm to prepare them for the real hearing.
+    `;
     
-    const response = await askNavigator(prompt);
-    setMessages([...newMessages, { role: 'assistant', content: response }]);
+    const response = await askNavigator(prompt, history);
+    setMessages([...newMessages, { role: 'assistant' as const, content: response }]);
     setIsAiResponding(false);
   };
 

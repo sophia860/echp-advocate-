@@ -18,7 +18,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 import type { Case } from '../types';
-import { askNavigator, getNextSteps } from '../lib/ai-client';
+import { askNavigator, getNextSteps } from '../lib/gemini';
 import { htmlToPdf, buildLetterHtml } from '../lib/flowr';
 import Modal from './ui/Modal';
 import AiButton from './ui/AiButton';
@@ -151,7 +151,7 @@ export default function Dashboard({
       </div>
 
       {/* Top Section: Status Cards */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <motion.div 
           whileHover={{ y: -4 }}
           className="bg-white p-6 rounded-3xl border border-[#EADDD7] shadow-sm relative overflow-hidden group"
@@ -211,9 +211,34 @@ export default function Dashboard({
               onClick={() => onNavigate('comms')}
               className="text-xs font-bold text-brand-600 flex items-center gap-1 hover:underline"
              >
-               View recent drafts <ArrowRight size={12} />
+                View all records <ArrowRight size={12} />
              </button>
           </div>
+        </motion.div>
+
+        <motion.div 
+          whileHover={{ y: -4 }}
+          className="bg-brand-900 p-6 rounded-3xl shadow-xl shadow-brand-900/10 flex flex-col justify-between relative overflow-hidden"
+        >
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.1),transparent)]" />
+          <div className="relative z-10">
+            <p className="text-sm font-bold text-white/60 uppercase tracking-widest mb-1">Evidence Strength</p>
+            <div className="flex items-baseline gap-2">
+              <h3 className="text-3xl font-black text-white">84%</h3>
+              <span className="text-[10px] font-bold text-emerald-400 uppercase">Strong</span>
+            </div>
+            <div className="mt-4 w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+               <motion.div 
+                 initial={{ width: 0 }}
+                 animate={{ width: '84%' }}
+                 transition={{ duration: 1.5, ease: "easeOut" }}
+                 className="h-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]" 
+               />
+            </div>
+          </div>
+          <p className="relative z-10 text-[10px] text-white/40 mt-4 leading-tight">
+            Based on EP report quality and LA's recent Section F response.
+          </p>
         </motion.div>
       </section>
 

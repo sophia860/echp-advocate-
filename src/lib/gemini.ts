@@ -1,10 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 
-const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) {
-  console.warn("GEMINI_API_KEY is not defined. AI features may not work.");
-}
-const ai = new GoogleGenAI({ apiKey: apiKey || "" });
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const SYSTEM_PROMPT = `
 You are the EHCP Navigator AI — a specialist case companion for 
@@ -37,7 +33,7 @@ Always write in the parent's voice (warm but firm) when drafting letters.
 export async function askNavigator(prompt: string, history: { role: string; parts: { text: string }[] }[] = []) {
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-3-flash-preview",
       contents: [
         ...history,
         { role: "user", parts: [{ text: prompt }] }
@@ -70,7 +66,7 @@ ${docContent}
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-3.1-pro-preview",
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: {
         systemInstruction: SYSTEM_PROMPT,
@@ -108,7 +104,7 @@ export async function scanProvision(docContent: string) {
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-3.1-pro-preview",
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: {
         systemInstruction: SYSTEM_PROMPT,
@@ -142,7 +138,7 @@ export async function getNextSteps(appCase: any) {
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-3-flash-preview",
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: {
         systemInstruction: SYSTEM_PROMPT,

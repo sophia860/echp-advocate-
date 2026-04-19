@@ -19,7 +19,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 import Modal from './ui/Modal';
-import { askNavigator } from '../lib/ai-client';
+import { askNavigator } from '../lib/gemini';
 
 interface Prof {
   id: string;

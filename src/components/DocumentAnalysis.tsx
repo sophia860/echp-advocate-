@@ -16,10 +16,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 import type { Case, CaseDoc } from '../types';
-import { analyzeDocument, askNavigator, scanProvision, runSwarm } from '../lib/ai-client';
-import type { SwarmTraceEvent, SwarmUsage } from '../lib/ai-client';
-import { addLesson, getLessons, isSwarmDebug } from '../lib/swarm-session';
-import SwarmTraceViewer from './SwarmTraceViewer';
+import { analyzeDocument, askNavigator, scanProvision } from '../lib/gemini';
 import { extractTextFromFile, extractStructuredData } from '../lib/flowr';
 import Modal from './ui/Modal';
 import AiButton from './ui/AiButton';
@@ -40,12 +37,6 @@ export default function DocumentAnalysis({
   const [draftResponse, setDraftResponse] = useState<string | null>(null);
   const [isScanningProvision, setIsScanningProvision] = useState(false);
   const [provisionScanResult, setProvisionScanResult] = useState<string | null>(null);
-  const [swarmTrace, setSwarmTrace] = useState<{
-    trace: SwarmTraceEvent[];
-    usage: SwarmUsage;
-    lesson?: string;
-  } | null>(null);
-  const swarmDebug = isSwarmDebug();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -58,31 +49,9 @@ export default function DocumentAnalysis({
     setSelectedDoc(doc);
     setIsAnalyzing(true);
     setAnalysisResult(null);
-    setSwarmTrace(null);
 
     const content = doc.content || `Draft EHCP for ${appCase.childName}. Section F provision: "${appCase.childName} will have access to support in the classroom as appropriate to her needs. The school will provide some sensory equipment where possible."`;
-
-    // When the swarm debug flag is set, run the multi-agent orchestrator in
-    // place of the single-shot Gemini call so we can see the swarm in action.
-    // Document content is passed as orchestrator context (stored on the
-    // blackboard under key "document"); it is never logged to the console.
-    if (swarmDebug) {
-      try {
-        const swarm = await runSwarm(
-          `Analyse this ${doc.type} for an EHCP case. Identify legal compliance issues, vague Section F provision, missing components, and 2-3 priority actions for the parent.`,
-          { context: content, priorLessons: getLessons() },
-        );
-        setAnalysisResult(swarm.result);
-        setSwarmTrace({ trace: swarm.trace, usage: swarm.usage, lesson: swarm.lesson });
-        addLesson(swarm.lesson);
-      } catch (err) {
-        console.error('Swarm error:', err);
-        setAnalysisResult('Swarm analysis failed; please try again.');
-      }
-      setIsAnalyzing(false);
-      return;
-    }
-
+    
     // Run Gemini analysis and Flowr extraction in parallel
     const [result] = await Promise.all([
       analyzeDocument(content, doc.type),
@@ -98,7 +67,7 @@ export default function DocumentAnalysis({
                 onUpdateDocs(updatedDocs);
               }
             })
-            .catch(() => {}) // silent fail — structured extraction is a bonus
+            .catch(() => {}) // silent fail â€” structured extraction is a bonus
         : Promise.resolve(),
     ]);
 
@@ -383,13 +352,6 @@ export default function DocumentAnalysis({
                             {analysisResult || "No analysis generated."}
                           </ReactMarkdown>
                         </div>
-                        {swarmDebug && swarmTrace && (
-                          <SwarmTraceViewer
-                            trace={swarmTrace.trace}
-                            usage={swarmTrace.usage}
-                            lesson={swarmTrace.lesson}
-                          />
-                        )}
                       </div>
                     </div>
 

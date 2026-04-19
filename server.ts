@@ -3,8 +3,6 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
-import { askNavigator, analyzeDocument, scanProvision, getNextSteps } from "./src/lib/gemini.js";
-import { runSwarm } from "./src/lib/agents/orchestrator.js";
 
 dotenv.config();
 
@@ -16,75 +14,6 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(express.json({ limit: '50mb' }));
-
-  // Proxy for Gemini AI API (keeps GEMINI_API_KEY server-side)
-  app.post("/api/ai", async (req, res) => {
-    if (!process.env.GEMINI_API_KEY) {
-      return res.status(500).json({ error: "Gemini API key not configured on server" });
-    }
-
-    const { action, prompt, history, docContent, docType, appCase, task, context, priorLessons } = req.body;
-
-    try {
-      // The runSwarm action returns a structured payload (result + trace +
-      // usage), not a single string, so it short-circuits the switch below.
-      if (action === "runSwarm") {
-        if (typeof task !== "string" || !task.trim()) {
-          return res.status(400).json({ error: "runSwarm requires a non-empty task string" });
-        }
-        if (context !== undefined && typeof context !== "string") {
-          return res.status(400).json({ error: "runSwarm context must be a string when provided" });
-        }
-        if (priorLessons !== undefined && !Array.isArray(priorLessons)) {
-          return res.status(400).json({ error: "runSwarm priorLessons must be an array when provided" });
-        }
-        const swarm = await runSwarm(task, {
-          context: typeof context === "string" ? context : undefined,
-          priorLessons: Array.isArray(priorLessons)
-            ? priorLessons.filter((l: unknown): l is string => typeof l === "string")
-            : undefined,
-        });
-        return res.json(swarm);
-      }
-
-      let result: string;
-      switch (action) {
-        case "askNavigator":
-          if (typeof prompt !== "string" || !prompt.trim()) {
-            return res.status(400).json({ error: "askNavigator requires a non-empty prompt string" });
-          }
-          result = await askNavigator(prompt, Array.isArray(history) ? history : []);
-          break;
-        case "analyzeDocument":
-          if (typeof docContent !== "string" || !docContent.trim()) {
-            return res.status(400).json({ error: "analyzeDocument requires a non-empty docContent string" });
-          }
-          if (typeof docType !== "string" || !docType.trim()) {
-            return res.status(400).json({ error: "analyzeDocument requires a non-empty docType string" });
-          }
-          result = await analyzeDocument(docContent, docType);
-          break;
-        case "scanProvision":
-          if (typeof docContent !== "string" || !docContent.trim()) {
-            return res.status(400).json({ error: "scanProvision requires a non-empty docContent string" });
-          }
-          result = await scanProvision(docContent);
-          break;
-        case "getNextSteps":
-          if (!appCase || typeof appCase !== "object") {
-            return res.status(400).json({ error: "getNextSteps requires an appCase object" });
-          }
-          result = await getNextSteps(appCase);
-          break;
-        default:
-          return res.status(400).json({ error: "Unknown AI action" });
-      }
-      res.json({ result });
-    } catch (error) {
-      console.error("AI proxy error:", error);
-      res.status(500).json({ error: "AI request failed" });
-    }
-  });
 
   // Proxy for Encodian Flowr API
   app.post("/api/flowr/*", async (req, res) => {
