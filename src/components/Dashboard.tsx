@@ -45,7 +45,7 @@ export default function Dashboard({
   const [showAddProf, setShowAddProf] = useState(false);
   const [newProf, setNewProf] = useState({ name: '', role: '' });
   const [team, setTeam] = useState([
-    { name: 'Sarah Chen', role: 'Main Advocate', initial: 'SC', color: 'bg-indigo-50 text-indigo-600' },
+    { name: 'Sarah Chen', role: 'Main Advocate', initial: 'SC', color: 'bg-brand-primary/5 text-brand-primary' },
     { name: 'Dr. Sarah Mills', role: 'Educational Psych', initial: 'SM', color: 'bg-emerald-50 text-emerald-600' },
     { name: 'John Doe', role: 'LA Case Officer', initial: 'JD', color: 'bg-slate-50 text-slate-600' },
   ]);
@@ -111,7 +111,7 @@ export default function Dashboard({
   const urgencyColor = daysLeft <= 7 
     ? 'text-red-600 bg-red-50 border-red-100' 
     : daysLeft <= 21 
-      ? 'text-amber-600 bg-amber-50 border-amber-100' 
+      ? 'text-brand-accent bg-brand-accent/5 border-brand-accent/20' 
       : 'text-emerald-600 bg-emerald-50 border-emerald-100';
 
   const stages: string[] = [
@@ -121,334 +121,288 @@ export default function Dashboard({
   const currentIndex = stages.indexOf(appCase.currentStage);
 
   return (
-    <div className="space-y-8 pb-12">
-      {/* Journey Progress Bar */}
-      <div className="bg-white p-6 rounded-[2.5rem] border border-[#EADDD7] shadow-sm mb-2">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Case Journey</p>
-          <span className="text-xs font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full">
-            Stage {currentIndex + 1} of {stages.length}
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          {stages.map((stage, i) => (
-            <div key={stage} className="flex-1 flex flex-col items-center gap-1.5">
-              <div className={cn(
-                "w-full h-2 rounded-full transition-all",
-                i < currentIndex ? "bg-emerald-400" :
-                i === currentIndex ? "bg-brand-500" :
-                "bg-slate-100"
-              )} />
-              <span className={cn(
-                "text-[9px] font-bold uppercase tracking-wider text-center leading-tight hidden md:block",
-                i === currentIndex ? "text-brand-600" : "text-slate-300"
-              )}>
-                {stage}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Top Section: Status Cards */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="space-y-10 pb-20">
+      {/* Top Section: Hero Dashboard */}
+      <section className="grid grid-cols-1 md:grid-cols-12 gap-8 items-stretch">
+        {/* Core Status: The "Navigator" Card */}
         <motion.div 
-          whileHover={{ y: -4 }}
-          className="bg-white p-6 rounded-3xl border border-[#EADDD7] shadow-sm relative overflow-hidden group"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="md:col-span-8 bg-brand-primary p-10 rounded-[3rem] text-white relative overflow-hidden shadow-2xl shadow-brand-primary/20"
         >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-brand-50 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-500" />
-          <div className="relative z-10">
-            <p className="text-sm font-bold text-brand-600 uppercase tracking-widest mb-1">Current Stage</p>
-            <h3 className="text-2xl font-bold text-slate-900 mb-4">{appCase.currentStage}</h3>
-            <div className="flex items-center gap-2 text-sm text-slate-500">
-               <div className={cn("inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-bold", urgencyColor)}>
-                <Clock size={12} />
-                {daysLeft > 0 ? `${daysLeft} days remaining` : `${Math.abs(daysLeft)} days overdue`}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-brand-accent/10 rounded-full -ml-24 -mb-24 blur-3xl pointer-events-none" />
+          
+          <div className="relative z-10 flex flex-col h-full justify-between gap-12">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-bold text-white/40 uppercase tracking-[0.2em] mb-2">{appCase.laName} • Stage {currentIndex + 1}</p>
+                <h1 className="text-4xl md:text-5xl text-display">Drafting {appCase.childName}'s Future</h1>
+              </div>
+              <div className="w-16 h-16 bg-white/10 backdrop-blur-xl rounded-2xl flex items-center justify-center border border-white/10">
+                <FileText className="text-brand-accent" size={32} />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-12 items-end">
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-white/40 uppercase tracking-widest">Urgency Level</p>
+                <p className="text-3xl font-black text-brand-accent">{daysLeft} Days <span className="text-base font-medium opacity-60">Left</span></p>
+              </div>
+              <div className="space-y-1 flex-1 min-w-[200px]">
+                <div className="flex justify-between text-xs font-bold text-white/40 uppercase mb-2">
+                  <span>Progress</span>
+                  <span>{Math.round(((currentIndex + 1) / stages.length) * 100)}%</span>
+                </div>
+                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${((currentIndex + 1) / stages.length) * 100}%` }}
+                    className="h-full bg-brand-accent shadow-[0_0_15px_rgba(255,98,0,0.5)]"
+                  />
+                </div>
               </div>
             </div>
           </div>
         </motion.div>
 
+        {/* Evidence Hub Card */}
         <motion.div 
-          whileHover={{ y: -4 }}
-          className="bg-white p-6 rounded-3xl border border-[#EADDD7] shadow-sm flex flex-col justify-between"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.1 }}
+          className="md:col-span-4 bg-white p-10 rounded-[3rem] border border-brand-primary/5 card-shadow flex flex-col justify-between"
         >
-          <div>
-            <div className="flex justify-between items-start mb-4">
-              <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">Case Files</p>
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                <FileText size={20} />
+          <div className="space-y-8">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold">Evidence Hub</h2>
+              <div className="w-12 h-12 rounded-2xl bg-brand-bg flex items-center justify-center text-brand-primary">
+                <Gavel size={24} />
               </div>
             </div>
-            <h3 className="text-3xl font-bold text-slate-900">{appCase.docs.length} <span className="text-sm font-medium text-slate-400">Documents</span></h3>
-          </div>
-          <div className="mt-4 flex items-center gap-2 overflow-hidden">
-            {appCase.docs.map(doc => (
-              <div key={doc.id} className={cn(
-                "w-2 h-2 rounded-full shrink-0",
-                doc.status === 'flagged' ? "bg-amber-400" : "bg-emerald-400"
-              )} />
-            ))}
-            <span className="text-xs text-slate-400 truncate">2 reviewed · 1 needs attention</span>
-          </div>
-        </motion.div>
-
-        <motion.div 
-          whileHover={{ y: -4 }}
-          className="bg-white p-6 rounded-3xl border border-[#EADDD7] shadow-sm flex flex-col justify-between"
-        >
-          <div>
-            <div className="flex justify-between items-start mb-4">
-              <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">Communications</p>
-              <div className="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
-                <Send size={20} />
+            
+            <div className="space-y-4">
+              <div className="p-5 bg-brand-bg rounded-2xl border border-brand-primary/5 flex items-center justify-between group cursor-pointer hover:border-brand-accent/30 transition-all">
+                <div>
+                  <p className="text-xs font-bold text-brand-primary/40 uppercase tracking-widest leading-none mb-1">Uploaded</p>
+                  <p className="text-2xl font-black">{appCase.docs.length}</p>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-brand-primary text-white flex items-center justify-center group-hover:bg-brand-accent transition-colors">
+                  <ArrowRight size={14} />
+                </div>
+              </div>
+              <div className="p-5 bg-brand-bg rounded-2xl border border-brand-primary/5 flex items-center justify-between group cursor-pointer hover:border-brand-accent/30 transition-all">
+                <div>
+                  <p className="text-xs font-bold text-brand-primary/40 uppercase tracking-widest leading-none mb-1">Comms</p>
+                  <p className="text-2xl font-black">{appCase.comms.length}</p>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-brand-primary text-white flex items-center justify-center group-hover:bg-brand-accent transition-colors">
+                  <ArrowRight size={14} />
+                </div>
               </div>
             </div>
-            <h3 className="text-3xl font-bold text-slate-900">{appCase.comms.length + 12} <span className="text-sm font-medium text-slate-400">Letters/Emails</span></h3>
           </div>
-          <div className="mt-4">
-             <button 
-              onClick={() => onNavigate('comms')}
-              className="text-xs font-bold text-brand-600 flex items-center gap-1 hover:underline"
-             >
-                View all records <ArrowRight size={12} />
-             </button>
-          </div>
-        </motion.div>
 
-        <motion.div 
-          whileHover={{ y: -4 }}
-          className="bg-brand-900 p-6 rounded-3xl shadow-xl shadow-brand-900/10 flex flex-col justify-between relative overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.1),transparent)]" />
-          <div className="relative z-10">
-            <p className="text-sm font-bold text-white/60 uppercase tracking-widest mb-1">Evidence Strength</p>
-            <div className="flex items-baseline gap-2">
-              <h3 className="text-3xl font-black text-white">84%</h3>
-              <span className="text-[10px] font-bold text-emerald-400 uppercase">Strong</span>
-            </div>
-            <div className="mt-4 w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-               <motion.div 
-                 initial={{ width: 0 }}
-                 animate={{ width: '84%' }}
-                 transition={{ duration: 1.5, ease: "easeOut" }}
-                 className="h-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]" 
-               />
-            </div>
-          </div>
-          <p className="relative z-10 text-[10px] text-white/40 mt-4 leading-tight">
-            Based on EP report quality and LA's recent Section F response.
-          </p>
+          <button 
+            onClick={() => onNavigate('documents')}
+            className="w-full btn-primary text-sm uppercase tracking-widest py-4 mt-6"
+          >
+            Review Bundle
+          </button>
         </motion.div>
       </section>
 
-      {/* Main Grid: Flags and Timeline */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Alerts & Tasks */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="flex justify-between items-end">
-            <h2 className="text-2xl font-bold font-display italic tracking-tight">Active Flags</h2>
-            <button className="text-sm font-bold text-slate-500 hover:text-brand-600 transition-colors">Mark all read</button>
-          </div>
-          
-          <div className="space-y-4">
-            <AnimatePresence>
-              {!isVagueDismissed && (
-                <motion.div 
-                  initial={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0, marginBottom: 0, overflow: 'hidden' }}
-                  className="bg-amber-50 border border-amber-100 p-5 rounded-3xl flex gap-4"
-                >
-                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-amber-500 shadow-sm shrink-0">
-                    <AlertCircle size={24} />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-bold text-slate-900">Vague Provision Flagged</p>
-                    <p className="text-sm text-slate-600 mt-1">Section F of the draft EHCP uses non-specific language: "some support as needed". This must be quantified.</p>
-                    <div className="mt-4 flex gap-3">
-                      <button 
-                        onClick={handleDraftChallenge}
-                        disabled={isDraftingChallenge}
-                        className="px-4 py-2 bg-amber-500 text-white rounded-xl text-xs font-bold shadow-sm hover:bg-amber-600 transition-all flex items-center gap-2"
-                      >
-                        {isDraftingChallenge ? <Loader2 size={12} className="animate-spin" /> : null}
-                        {isDraftingChallenge ? 'Drafting...' : 'Draft Challenge'}
-                      </button>
-                      <button 
-                        onClick={() => setIsVagueDismissed(true)}
-                        className="px-4 py-2 bg-white border border-amber-200 text-amber-700 rounded-xl text-xs font-bold hover:bg-amber-100 transition-all"
-                      >
-                        Dismiss
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <div className="bg-white border border-[#EADDD7] p-5 rounded-3xl flex gap-4">
-              <div className="w-12 h-12 bg-brand-50 rounded-2xl flex items-center justify-center text-brand-600 shadow-sm shrink-0">
-                <Clock size={24} />
-              </div>
-              <div className="flex-1">
-                <p className="font-bold text-slate-900">LA Response Overdue</p>
-                <p className="text-sm text-slate-600 mt-1">The 6-week statutory deadline for a response to your initial request passed 2 days ago.</p>
-                <div className="mt-4 flex gap-3">
-                  <button 
-                    onClick={handleSendChaser}
-                    disabled={isDraftingChaser}
-                    className="px-4 py-2 bg-brand-900 text-white rounded-xl text-xs font-bold shadow-sm hover:bg-brand-800 transition-all flex items-center gap-2"
+      {/* Main Grid: Intelligence and Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        {/* Left: Intelligence Rail */}
+        <div className="lg:col-span-2 space-y-10">
+          <div className="space-y-6">
+            <div className="flex justify-between items-end">
+              <h2 className="text-3xl text-display">Active Priorities</h2>
+              <p className="text-xs font-bold text-brand-primary/40 uppercase tracking-[0.2em]">{appCase.docs.length + 2} Tasks pending</p>
+            </div>
+            
+            <div className="space-y-4">
+              <AnimatePresence>
+                {!isVagueDismissed && (
+                  <motion.div 
+                    initial={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20, height: 0, marginBottom: 0 }}
+                    className="p-8 bg-white border border-brand-primary/5 rounded-[2.5rem] card-shadow flex gap-8 items-center"
                   >
-                    {isDraftingChaser ? <Loader2 size={12} className="animate-spin" /> : null}
-                    {isDraftingChaser ? 'Drafting...' : 'Send Chaser'}
-                  </button>
+                    <div className="w-16 h-16 bg-brand-accent/10 text-brand-accent rounded-[1.25rem] flex items-center justify-center shrink-0">
+                      <AlertCircle size={32} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-[10px] font-black text-brand-accent uppercase tracking-[0.2em]">Critical Warning</span>
+                        <button onClick={() => setIsVagueDismissed(true)}><X size={16} className="text-slate-300 hover:text-red-500 transition-colors" /></button>
+                      </div>
+                      <h3 className="text-xl font-bold mb-2 leading-tight">Vague Provision Detected in Section F</h3>
+                      <p className="text-sm text-slate-500 leading-relaxed max-w-xl">
+                        Found phrases like <span className="font-bold text-brand-primary">"some support"</span>. The High Court (E v Newham 1994) requires provision to be specified and quantified.
+                      </p>
+                      <div className="mt-8 flex gap-4">
+                        <button 
+                          onClick={handleDraftChallenge}
+                          disabled={isDraftingChallenge}
+                          className="btn-accent flex items-center gap-3"
+                        >
+                          {isDraftingChallenge ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
+                          Generate Challenge Letter
+                        </button>
+                        <button className="px-6 py-3 bg-brand-bg rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-brand-primary/5 transition-all">View Legals</button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="p-8 bg-white border border-brand-primary/5 rounded-[2.5rem] card-shadow flex gap-8 items-center">
+                <div className="w-16 h-16 bg-brand-primary/5 text-brand-primary rounded-[1.25rem] flex items-center justify-center shrink-0">
+                  <Clock size={32} />
+                </div>
+                <div className="flex-1">
+                  <span className="text-[10px] font-black text-brand-primary/40 uppercase tracking-[0.2em]">Timeline Alert</span>
+                  <h3 className="text-xl font-bold my-2 leading-tight">Response Chaser Needed</h3>
+                  <p className="text-sm text-slate-500 leading-relaxed">
+                    Statutory deadline passed for assessment response. Pro-active chase recommended.
+                  </p>
+                  <div className="mt-8">
+                    <button 
+                      onClick={handleSendChaser}
+                      disabled={isDraftingChaser}
+                      className="btn-primary flex items-center gap-3"
+                    >
+                      {isDraftingChaser ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                      Draft Chaser (Node Voice)
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white p-8 rounded-[2.5rem] border border-[#EADDD7] shadow-sm">
-            <h3 className="text-xl font-bold mb-6">Case Chronology</h3>
-            <div className="relative pl-8 space-y-8 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
+          {/* Timeline Heat-map Style */}
+          <div className="bg-brand-primary/95 p-12 rounded-[4rem] text-white overflow-hidden relative">
+            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_0%_0%,rgba(255,98,0,0.1),transparent)]" />
+            <h3 className="text-2xl text-display mb-10 relative z-10">Strategic Chronology</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative z-10">
               {[
-                { date: 'Jun 2025', title: 'Draft EHCP Received', desc: 'LA shared first draft after assessment.', status: 'current' },
-                { date: 'May 2025', title: 'Assessment Completed', desc: 'EP and SALT reports submitted.', status: 'done' },
-                { date: 'Mar 2025', title: 'EHCP Request Approved', desc: 'LA agreed to assess Maya.', status: 'done' },
+                { date: 'Jun 2025', title: 'Plan Draft', desc: 'Section F Vague Flag', urgency: 'high' },
+                { date: 'May 2025', title: 'Consultation', desc: 'EP/SALT Evidence Lock', urgency: 'done' },
+                { date: 'Mar 2025', title: 'Assessment', desc: 'LA Request Sync', urgency: 'done' },
               ].map((item, i) => (
-                <div key={i} className="relative">
+                <div key={i} className="space-y-4 group">
                   <div className={cn(
-                    "absolute -left-10 top-1 w-6 h-6 rounded-full border-4 border-white shadow-sm z-10",
-                    item.status === 'current' ? "bg-brand-500 scale-125" : "bg-emerald-500"
+                    "w-full h-1 rounded-full mb-6",
+                    item.urgency === 'high' ? "bg-brand-accent shadow-[0_0_10px_rgba(255,98,0,0.5)]" : "bg-white/20"
                   )} />
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{item.date}</p>
-                  <p className="font-bold text-slate-900">{item.title}</p>
-                  <p className="text-sm text-slate-500 mt-1">{item.desc}</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">{item.date}</p>
+                  <p className="text-xl font-bold group-hover:text-brand-accent transition-colors">{item.title}</p>
+                  <p className="text-xs text-white/50 leading-relaxed">{item.desc}</p>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Professional Team Sidebar */}
-        <div className="space-y-6">
-          {/* AI Strategist Card */}
-          <div className="bg-brand-50 border border-brand-100 p-6 rounded-[2.5rem] shadow-sm overflow-hidden relative group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-brand-100/50 rounded-full -mr-12 -mt-12 blur-2xl group-hover:scale-150 transition-transform duration-1000" />
-            <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-brand-900 rounded-2xl flex items-center justify-center text-white shadow-lg">
-                  <Sparkles size={20} />
+        {/* Right: Personal Legal Aide Rail */}
+        <div className="space-y-10">
+          <div className="bg-white p-10 rounded-[3rem] border border-brand-primary/5 card-shadow relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-brand-bg rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-700" />
+            <div className="relative z-10 space-y-8">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-brand-primary text-white rounded-2xl flex items-center justify-center shadow-lg">
+                  <Sparkles size={24} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800">Case Strategist</h3>
-                  <p className="text-[10px] text-brand-600 font-bold uppercase tracking-wider">AI Powered Insights</p>
+                  <h3 className="text-lg font-black text-brand-primary uppercase tracking-tight">AI Strategist</h3>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                    <span className="text-[10px] font-bold text-emerald-600 uppercase">System Calibrated</span>
+                  </div>
                 </div>
               </div>
-              
-              <div className="mb-6">
-                <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                  {strategyResult ? (
-                    <div className="prose prose-sm leading-tight text-slate-700">
-                      <ReactMarkdown>{strategyResult}</ReactMarkdown>
-                    </div>
-                  ) : (
-                    "Analyzing your current documents and statutory deadlines to suggest the best route forward."
-                  )}
-                </p>
+
+              <div className="p-6 bg-brand-bg rounded-[2rem] border border-brand-primary/5">
+                {strategyResult ? (
+                  <div className="prose prose-sm leading-relaxed text-brand-primary/80">
+                    <ReactMarkdown>{strategyResult}</ReactMarkdown>
+                  </div>
+                ) : (
+                  <p className="text-sm text-brand-primary/60 italic leading-relaxed">
+                    Ready to evaluate your current legal standing and suggest high-leverage next moves.
+                  </p>
+                )}
               </div>
 
               {!strategyResult ? (
-                <AiButton 
+                <button 
                   onClick={handleAnalyzeStrategy} 
-                  isLoading={isAnalyzingStrategy}
-                  className="w-full py-3 justify-center text-xs"
+                  disabled={isAnalyzingStrategy}
+                  className="w-full btn-primary disabled:opacity-50 flex items-center justify-center gap-3"
                 >
-                  Analyze Next Steps
-                </AiButton>
+                  {isAnalyzingStrategy ? <Loader2 className="animate-spin" /> : <Plus size={18} />}
+                  Run Scenario Scan
+                </button>
               ) : (
                 <button 
                   onClick={() => setStrategyResult(null)}
-                  className="w-full py-3 bg-white border border-brand-200 text-brand-700 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-brand-50 transition-all"
+                  className="w-full btn-accent/10 border border-brand-accent/20 text-brand-accent py-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-brand-accent/5"
                 >
-                  Recalculate Strategy
+                  Re-Scan Case
                 </button>
               )}
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-[2.5rem] border border-[#EADDD7] shadow-sm">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold">Your Team</h3>
-              <Users size={18} className="text-slate-400" />
-            </div>
-            <div className="space-y-4">
-              {team.map((person, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm", person.color)}>
-                    {person.initial}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold truncate">{person.name}</p>
-                    <p className="text-xs text-slate-500 truncate">{person.role}</p>
-                  </div>
-                </div>
-              ))}
-
-              <AnimatePresence>
-                {showAddProf && (
-                  <motion.form 
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    onSubmit={handleAddProf}
-                    className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3"
-                  >
-                    <input 
-                      autoFocus
-                      type="text" 
-                      placeholder="Name"
-                      value={newProf.name}
-                      onChange={e => setNewProf({...newProf, name: e.target.value})}
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+          {/* Evidence Strength Meter: High-Value Edition */}
+          <div className="bg-brand-bg p-10 rounded-[3rem] border border-brand-primary/5 flex flex-col justify-between h-[340px]">
+            <div>
+              <p className="text-xs font-black text-brand-primary/40 uppercase tracking-[0.2em] mb-4">Evidence Matrix</p>
+              <div className="relative h-40 w-40 mx-auto">
+                 {/* Circular Progress (Simplified for SVG or similar) */}
+                 <svg className="w-full h-full transform -rotate-90">
+                    <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-brand-primary/5" />
+                    <motion.circle 
+                      cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="12" fill="transparent" 
+                      strokeDasharray="440"
+                      initial={{ strokeDashoffset: 440 }}
+                      animate={{ strokeDashoffset: 440 - (440 * 0.84) }}
+                      transition={{ duration: 2, ease: "easeOut" }}
+                      className="text-brand-accent shadow-xl" 
                     />
-                    <input 
-                      type="text" 
-                      placeholder="Role (e.g. SALT)"
-                      value={newProf.role}
-                      onChange={e => setNewProf({...newProf, role: e.target.value})}
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                    />
-                    <div className="flex gap-2">
-                      <button type="submit" className="flex-1 py-2 bg-brand-900 text-white rounded-xl text-xs font-bold hover:bg-brand-800">Add</button>
-                      <button type="button" onClick={() => setShowAddProf(false)} className="px-3 py-2 bg-white border border-slate-200 text-slate-400 rounded-xl text-xs font-bold hover:bg-slate-50">Cancel</button>
-                    </div>
-                  </motion.form>
-                )}
-              </AnimatePresence>
-
-              {!showAddProf && (
-                <button 
-                  onClick={() => setShowAddProf(true)}
-                  className="w-full mt-4 py-3 border border-dashed border-[#EADDD7] rounded-2xl text-slate-400 text-sm font-medium hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
-                >
-                  <Plus size={16} /> Add Professional
-                </button>
-              )}
+                 </svg>
+                 <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-4xl text-display leading-none">84</span>
+                    <span className="text-[10px] font-black text-brand-primary/40 uppercase">Strong</span>
+                 </div>
+              </div>
             </div>
+            <p className="text-center text-[10px] text-brand-primary/50 leading-relaxed px-4">
+              Your EP report is robust but lacking specific SALT interventions. Scanning new uploads...
+            </p>
           </div>
 
-          <div className="bg-brand-900 p-6 rounded-[2.5rem] text-white shadow-xl shadow-brand-900/20 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-700" />
-            <div className="relative z-10">
-              <h3 className="text-xl font-bold mb-2">Upgrade for Tribunal Mode</h3>
-              <p className="text-sm text-brand-200 mb-6">Facing a tribunal? Unlock our specialized AI coach and bundle builder.</p>
-              <button 
-                onClick={() => setIsUpgradeModalOpen(true)}
-                className="w-full py-3 bg-white text-brand-900 rounded-2xl text-sm font-bold shadow-lg shadow-black/10 hover:bg-brand-50 transition-all flex items-center justify-center gap-2"
-              >
-                 Get Started <ArrowRight size={16} />
-              </button>
+          {/* Tribunal Mode: The Monetization Gate */}
+          <div className="bg-[#1a1a1a] p-10 rounded-[3rem] text-white shadow-2xl relative overflow-hidden flex flex-col justify-between">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 pointer-events-none" />
+            <div className="relative z-10 space-y-6">
+              <div className="flex items-center gap-3">
+                <Gavel className="text-brand-accent" size={24} />
+                <h3 className="text-xl text-display">Tribunal Mode</h3>
+              </div>
+              <p className="text-sm text-white/40 leading-relaxed">
+                Facing a SENDIST appeal? Unlock our specialized trial assistant and automated evidence bundles.
+              </p>
             </div>
+            <button 
+              onClick={() => setIsUpgradeModalOpen(true)}
+              className="mt-10 btn-accent py-4 w-full text-xs font-black uppercase tracking-widest"
+            >
+              Unlock Advocate Access
+            </button>
           </div>
         </div>
       </div>
@@ -458,26 +412,26 @@ export default function Dashboard({
         onClose={() => setAiDraft(null)} 
         title={aiDraft?.title || 'Draft Letter'}
       >
-        <div className="prose prose-sm max-w-none">
+        <div className="prose-sm max-w-none text-brand-primary leading-relaxed bg-brand-bg p-8 rounded-3xl border border-brand-primary/5">
           <ReactMarkdown>{aiDraft?.content || ''}</ReactMarkdown>
         </div>
-        <div className="mt-8 flex gap-3">
+        <div className="mt-10 flex gap-4">
           <button 
             onClick={() => {
               navigator.clipboard.writeText(aiDraft?.content || '');
             }}
-            className="flex-1 py-4 bg-white border border-slate-200 text-slate-700 rounded-2xl font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+            className="flex-1 py-4 bg-white border border-brand-primary/5 text-brand-primary rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-brand-bg transition-all flex items-center justify-center gap-3 card-shadow"
           >
-            <Copy size={18} /> Copy Text
+            <Copy size={18} /> Copy
           </button>
           <button 
             onClick={handleDownloadLetterPdf}
             disabled={isDownloadingPdf}
-            className="flex-1 py-4 bg-brand-900 text-white rounded-2xl font-bold hover:bg-brand-800 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand-900/10"
+            className="flex-1 py-4 btn-primary flex items-center justify-center gap-3 shadow-xl"
           >
             {isDownloadingPdf 
-              ? <><Loader2 size={18} className="animate-spin" /> Generating PDF...</>
-              : <><Download size={18} /> Download PDF</>
+              ? <><Loader2 size={18} className="animate-spin" /> Processing...</>
+              : <><Download size={18} /> Get PDF</>
             }
           </button>
         </div>
@@ -486,20 +440,21 @@ export default function Dashboard({
       <Modal
         isOpen={isUpgradeModalOpen}
         onClose={() => setIsUpgradeModalOpen(false)}
-        title="Tribunal Mode — Coming Soon"
+        title="Access Denied"
       >
-        <div className="text-center p-6">
-          <div className="w-16 h-16 bg-brand-50 text-brand-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Gavel size={32} />
+        <div className="text-center p-10">
+          <div className="w-24 h-24 bg-brand-bg text-brand-accent rounded-[2rem] flex items-center justify-center mx-auto mb-10 shadow-inner">
+            <Gavel size={48} />
           </div>
-          <p className="text-slate-600 leading-relaxed">
-            Full tribunal preparation tools are coming soon. You'll be notified when this feature launches.
+          <h3 className="text-2xl text-display mb-4">Enterprise Grade Advocates Only</h3>
+          <p className="text-brand-primary/50 leading-relaxed mb-10 max-w-sm mx-auto">
+            Full tribunal preparation and legal simulation requires an Elite plan for regulatory compliance.
           </p>
           <button 
             onClick={() => setIsUpgradeModalOpen(false)}
-            className="mt-8 w-full py-4 bg-brand-900 text-white rounded-2xl font-bold hover:bg-brand-800"
+            className="btn-primary w-full py-5 text-sm uppercase tracking-widest"
           >
-            Close
+            Join Waiting List
           </button>
         </div>
       </Modal>

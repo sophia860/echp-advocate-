@@ -13,7 +13,9 @@ import {
   Phone,
   Sparkles,
   Copy,
-  Loader2
+  Loader2,
+  Info,
+  ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
@@ -73,127 +75,153 @@ export default function ProfessionalFinder({ onToast }: { onToast: (msg: string)
   ];
 
   return (
-    <div className="space-y-8">
-      <div className="bg-brand-900 p-10 rounded-[3rem] text-white shadow-xl shadow-brand-900/10 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32" />
-        <div className="relative z-10 max-w-2xl">
-          <h2 className="text-3xl font-display italic font-bold mb-4 tracking-tight">Your Professional Team</h2>
-          <p className="text-brand-100 mb-8 leading-relaxed">
-            Based on Maya's current stage (Draft Plan), we recommend updating your independent EP report. 
-            Tribunal panels prioritize evidence less than 2 years old.
+    <div className="space-y-12">
+      {/* Team Command Header */}
+      <div className="bg-brand-primary p-12 rounded-[4rem] text-white shadow-2xl relative overflow-hidden group">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-brand-accent/10 rounded-full -mr-48 -mt-48 blur-3xl group-hover:scale-110 transition-transform duration-1000" />
+        <div className="relative z-10 max-w-4xl">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-12 h-12 bg-brand-accent rounded-2xl flex items-center justify-center text-white shadow-lg shadow-brand-accent/20">
+              <Users size={24} strokeWidth={2.5} />
+            </div>
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-brand-accent">Strategic Alliance Protocol</p>
+          </div>
+          <h2 className="text-5xl text-display text-white mb-6">Your Professional Matrix</h2>
+          <p className="text-white/40 mb-12 leading-relaxed text-lg font-medium max-w-2xl">
+            Tribunal panels prioritize evidence less than 2 years old. Based on Section F requirements, we recommend updating your independent EP assets immediately.
           </p>
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap gap-6 text-white">
             <button 
               onClick={() => setIsAddModalOpen(true)}
-              className="px-5 py-2.5 bg-white text-brand-900 rounded-xl text-sm font-bold shadow-lg hover:bg-brand-50 transition-all flex items-center gap-2"
+              className="px-8 py-4 bg-brand-accent text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-2xl shadow-brand-accent/20 hover:bg-white hover:text-brand-primary transition-all flex items-center gap-3 active:scale-95"
             >
-              <Plus size={18} /> Add Professional
+              <Plus size={18} strokeWidth={3} /> Recruit Asset
             </button>
             <button 
               onClick={() => setIsManageModalOpen(true)}
-              className="px-5 py-2.5 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-xl text-sm font-bold hover:bg-white/20 transition-all"
+              className="px-8 py-4 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-3"
             >
-              Manage Existing Team
+              Manage Active Unit <ArrowRight size={18} />
             </button>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-8">
-        {/* Filters Sidebar */}
-        <div className="w-full md:w-64 space-y-6 shrink-0">
-          <div className="bg-white p-6 rounded-[2.5rem] border border-[#EADDD7] shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-               <h3 className="font-bold">Filters</h3>
-               <Filter size={16} className="text-slate-400" />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        {/* Filters Pillar */}
+        <div className="lg:col-span-3 space-y-8">
+          <div className="bg-white p-10 rounded-[3rem] border border-brand-primary/5 shadow-xl glass">
+            <div className="flex items-center justify-between mb-8">
+               <h3 className="text-xl font-bold">Filters</h3>
+               <Filter size={18} className="text-brand-primary/20" />
             </div>
-            <div className="space-y-4">
+            <div className="space-y-8">
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Specialism</p>
-                <div className="space-y-2">
+                <p className="text-[10px] font-black text-brand-primary/30 uppercase tracking-[0.3em] mb-4 pl-2">Specialism</p>
+                <div className="space-y-3">
                   {['ASD', 'ADHD', 'Dyslexia', 'SEMH', 'PDA'].map(tag => (
-                    <label key={tag} className="flex items-center gap-2 cursor-pointer group">
-                      <input type="checkbox" className="w-4 h-4 rounded border-[#EADDD7] text-brand-600 focus:ring-brand-500" />
-                      <span className="text-xs text-slate-600 font-medium group-hover:text-slate-900">{tag}</span>
+                    <label key={tag} className="flex items-center gap-4 cursor-pointer group p-3 hover:bg-brand-bg rounded-xl transition-all">
+                      <input type="checkbox" className="w-5 h-5 rounded-[0.5rem] border-brand-primary/10 text-brand-accent focus:ring-brand-accent/20 transition-all" />
+                      <span className="text-xs text-brand-primary/60 font-bold group-hover:text-brand-primary transition-colors">{tag}</span>
                     </label>
                   ))}
                 </div>
               </div>
-              <div className="pt-4 border-t border-slate-50">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Availability</p>
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" className="w-4 h-4 rounded border-[#EADDD7]" />
-                    <span className="text-xs text-slate-600">Within 2 weeks</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" className="w-4 h-4 rounded border-[#EADDD7]" />
-                    <span className="text-xs text-slate-600">Remote only</span>
-                  </label>
+              <div className="pt-8 border-t border-brand-primary/5">
+                <p className="text-[10px] font-black text-brand-primary/30 uppercase tracking-[0.3em] mb-4 pl-2">Sync Range</p>
+                <div className="space-y-3">
+                  {['Within 2 Weeks', 'Remote Only', 'Panel Veteran'].map(range => (
+                    <label key={range} className="flex items-center gap-4 cursor-pointer group p-3 hover:bg-brand-bg rounded-xl transition-all">
+                      <input type="checkbox" className="w-5 h-5 rounded-[0.5rem] border-brand-primary/10 text-brand-accent" />
+                      <span className="text-xs text-brand-primary/60 font-bold group-hover:text-brand-primary uppercase tracking-tight">{range}</span>
+                    </label>
+                  ))}
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-8 bg-brand-primary/95 text-white rounded-[3rem] border border-white/5 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-brand-accent/10 rounded-full -mr-16 -mt-16 group-hover:scale-125 transition-transform duration-1000" />
+            <div className="relative z-10 flex gap-6">
+              <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-brand-accent shrink-0">
+                <Info size={24} />
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-black uppercase tracking-[0.2em] text-brand-accent">Panel Logic</p>
+                <p className="text-xs text-white/50 leading-relaxed font-medium">
+                  Independent reports carry significantly more weight in tribunal if they cross-reference Section B and Section F directly.
+                </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Results List */}
-        <div className="flex-1 space-y-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="font-bold text-slate-900">Recommended for you</h3>
-            <p className="text-xs text-slate-400 font-medium">3 specialists nearby</p>
+        {/* Specialists Matrix */}
+        <div className="lg:col-span-9 space-y-6">
+          <div className="flex items-end justify-between px-4">
+            <div className="space-y-1">
+              <h3 className="text-2xl font-bold">Recommended Assets</h3>
+              <p className="text-[10px] font-black text-brand-primary/30 uppercase tracking-[0.3em]">Verified Specialists Identified</p>
+            </div>
+            <p className="text-[10px] font-black text-brand-accent uppercase tracking-widest bg-brand-accent/5 px-3 py-1 rounded-full border border-brand-accent/10 italic">3 Matches Syncing</p>
           </div>
           
-          <div className="space-y-4">
+          <div className="space-y-6">
             {professionals.map((prof, i) => (
               <motion.div 
-                whileHover={{ y: -2 }}
+                whileHover={{ y: -4, scale: 1.005 }}
                 key={i} 
                 onClick={() => handleRequestContact(prof)}
-                className="bg-white p-6 rounded-[2.5rem] border border-[#EADDD7] shadow-sm flex flex-col md:flex-row gap-6 hover:border-brand-300 transition-all cursor-pointer group"
+                className="bg-white p-8 rounded-[4rem] border border-brand-primary/5 shadow-2xl flex flex-col md:flex-row gap-10 hover:border-brand-accent transition-all cursor-pointer group relative overflow-hidden"
               >
-                <div className="w-24 h-24 bg-brand-50 rounded-3xl flex items-center justify-center shrink-0 overflow-hidden border border-brand-100">
-                   <img src={`https://picsum.photos/seed/${prof.name}/150/150`} alt={prof.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <div className="absolute inset-0 z-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                   <div className="absolute top-0 right-0 w-96 h-96 bg-brand-bg rounded-full -mr-48 -mt-48 blur-3xl" />
+                </div>
+
+                <div className="relative z-10 w-32 h-32 bg-brand-bg rounded-[2.5rem] flex items-center justify-center shrink-0 overflow-hidden border border-brand-primary/5 shadow-inner">
+                   <img src={`https://picsum.photos/seed/${prof.name}/300/300`} alt={prof.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" referrerPolicy="no-referrer" />
                 </div>
                 
-                <div className="flex-1 min-w-0">
-                   <div className="flex items-start justify-between">
+                <div className="relative z-10 flex-1 min-w-0 flex flex-col justify-center">
+                   <div className="flex items-start justify-between mb-4">
                      <div>
-                       <h4 className="text-lg font-bold text-slate-900 group-hover:text-brand-900 transition-colors">{prof.name}</h4>
-                       <p className="text-sm text-brand-600 font-medium mb-2">{prof.role}</p>
+                       <h4 className="text-2xl font-black text-brand-primary tracking-tight truncate mb-1">{prof.name}</h4>
+                       <p className="text-[10px] font-black text-brand-accent uppercase tracking-[0.3em]">{prof.role}</p>
                      </div>
-                     <div className="flex items-center gap-1 bg-brand-50 px-2 py-1 rounded-lg text-brand-700 text-xs font-bold">
-                        <Star size={12} className="fill-brand-500 text-brand-500" /> {prof.rating}
+                     <div className="flex items-center gap-2 bg-brand-bg px-4 py-2 rounded-2xl text-brand-primary text-xs font-black border border-brand-primary/5">
+                        <Star size={14} className="fill-brand-accent text-brand-accent" /> {prof.rating}
                      </div>
                    </div>
 
-                   <div className="flex flex-wrap gap-2 mb-4">
+                   <div className="flex flex-wrap gap-3 mb-6">
                      {prof.tags.map(tag => (
-                       <span key={tag} className="px-2 py-0.5 bg-slate-50 text-slate-500 rounded-full text-[10px] font-bold uppercase tracking-tight italic">
+                       <span key={tag} className="px-3 py-1 bg-brand-bg/50 border border-brand-primary/5 text-brand-primary/40 rounded-full text-[9px] font-black uppercase tracking-widest italic group-hover:bg-white group-hover:text-brand-accent transition-all">
                          {tag}
                        </span>
                      ))}
                    </div>
 
-                   <div className="flex flex-wrap gap-x-6 gap-y-2">
-                     <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-                        <MapPin size={14} className="text-slate-300" /> {prof.location}
+                   <div className="flex flex-wrap gap-x-10 gap-y-3">
+                     <div className="flex items-center gap-2 text-[10px] font-black text-brand-primary/40 uppercase tracking-widest">
+                        <MapPin size={16} className="text-brand-accent" strokeWidth={2.5} /> {prof.location}
                      </div>
-                     <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-                        <Clock size={14} className="text-slate-300" /> {prof.turnaround} turnaround
+                     <div className="flex items-center gap-2 text-[10px] font-black text-brand-primary/40 uppercase tracking-widest">
+                        <Clock size={16} className="text-brand-accent" strokeWidth={2.5} /> {prof.turnaround}
                      </div>
-                     <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-                        <Video size={14} className="text-slate-300" /> Video consults
+                     <div className="flex items-center gap-2 text-[10px] font-black text-brand-primary/40 uppercase tracking-widest">
+                        <Video size={16} className="text-brand-accent" strokeWidth={2.5} /> Virtual Consults
                      </div>
                    </div>
                 </div>
 
-                <div className="flex flex-col justify-between items-end border-l border-slate-50 pl-6 shrink-0 min-w-[140px]">
+                <div className="relative z-10 flex flex-col justify-between items-end md:border-l border-brand-primary/5 md:pl-10 shrink-0 min-w-[200px]">
                    <div className="text-right">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Est. Cost</p>
-                      <p className="font-bold text-slate-900">{prof.price}</p>
+                      <p className="text-[10px] font-black text-brand-primary/20 uppercase tracking-[0.3em] mb-2">Sync Fee Range</p>
+                      <p className="text-2xl font-black text-brand-primary font-mono tracking-tight">{prof.price}</p>
                    </div>
-                   <div className="mt-4 px-4 py-2.5 bg-brand-900 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-brand-900/10 pointer-events-none">
-                      Request Contact <ChevronRight size={14} />
+                   <div className="mt-6 w-full py-5 bg-brand-bg group-hover:bg-brand-accent text-brand-primary/40 group-hover:text-white rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-4">
+                      Initiate Outreach <ChevronRight size={18} className="translate-x-0 group-hover:translate-x-1 transition-transform" />
                    </div>
                 </div>
               </motion.div>
@@ -202,43 +230,46 @@ export default function ProfessionalFinder({ onToast }: { onToast: (msg: string)
         </div>
       </div>
 
+      {/* Modals */}
       <Modal
         isOpen={isContactModalOpen}
         onClose={() => setIsContactModalOpen(false)}
-        title={`Request Contact: ${contactingProf?.name}`}
+        title="Asset Outreach Sync"
       >
-        <div className="space-y-6">
-          <div className="p-4 bg-brand-50 border border-brand-100 rounded-2xl flex gap-3">
-            <Sparkles size={20} className="text-brand-600 shrink-0" />
-            <p className="text-xs text-brand-800 leading-relaxed font-medium">
-              We've drafted a professional letter to help you get started with {contactingProf?.name}.
+        <div className="p-10 space-y-10">
+          <div className="p-6 bg-brand-accent/5 border border-brand-accent/20 rounded-[2rem] flex gap-4">
+            <Sparkles size={24} className="text-brand-accent shrink-0" />
+            <p className="text-xs text-brand-primary/60 leading-relaxed font-black uppercase tracking-widest">
+              Intelligence engine has prepared a high-impact narrative targeting Section F requirements.
             </p>
           </div>
 
           <div className={cn(
-            "prose prose-sm p-5 bg-slate-50 border border-slate-100 rounded-2xl min-h-[200px] max-h-[300px] overflow-y-auto custom-scrollbar relative",
+            "p-10 bg-brand-bg border border-brand-primary/5 rounded-[3rem] min-h-[300px] max-h-[500px] overflow-y-auto custom-scrollbar relative prose prose-brand prose-sm max-w-none text-brand-primary",
             isGeneratingContact && "flex items-center justify-center"
           )}>
             {isGeneratingContact ? (
-              <div className="flex flex-col items-center gap-2 text-brand-600">
-                <Loader2 size={32} className="animate-spin" />
-                <span className="text-xs font-bold">Drafting email...</span>
+              <div className="flex flex-col items-center gap-4 text-brand-accent">
+                <Loader2 size={48} className="animate-spin" />
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] animate-pulse">Synthesizing Narrative...</span>
               </div>
             ) : (
               <ReactMarkdown>{contactDraft}</ReactMarkdown>
             )}
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-4">
              <button 
               onClick={() => {
                 navigator.clipboard.writeText(contactDraft);
-                onToast("✓ Draft copied to clipboard");
+                onToast("✓ Data Matrix Copied");
+                setContactDraft('');
+                setIsContactModalOpen(false);
               }}
               disabled={isGeneratingContact || !contactDraft}
-              className="flex-1 py-4 bg-brand-900 text-white rounded-2xl font-bold hover:bg-brand-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="flex-1 py-6 btn-accent text-xs font-black uppercase tracking-widest shadow-2xl shadow-brand-accent/20 disabled:opacity-20"
             >
-              <Copy size={18} /> Copy Email Draft
+              Copy Asset Outreach Letter
             </button>
           </div>
         </div>
@@ -247,37 +278,37 @@ export default function ProfessionalFinder({ onToast }: { onToast: (msg: string)
       <Modal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        title="Add Team Member"
+        title="Recruit To Matrix"
       >
-        <form onSubmit={handleAddProf} className="space-y-6">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Full Name</label>
+        <form onSubmit={handleAddProf} className="p-10 space-y-10">
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-brand-primary/30 uppercase tracking-[0.3em] pl-2">Asset Full Name</label>
               <input 
                 autoFocus
                 type="text" 
                 value={newProf.name}
                 onChange={e => setNewProf({...newProf, name: e.target.value})}
-                placeholder="e.g. Dr. Sarah Mills"
-                className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                placeholder="Dr. Sarah Mills"
+                className="w-full px-8 py-5 bg-brand-bg border border-brand-primary/5 rounded-[1.5rem] text-sm font-bold focus:outline-none focus:ring-4 focus:ring-brand-accent/5 transition-all text-brand-primary"
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Role / Specialism</label>
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-brand-primary/30 uppercase tracking-[0.3em] pl-2">Role / Sector</label>
               <input 
                 type="text" 
                 value={newProf.role}
                 onChange={e => setNewProf({...newProf, role: e.target.value})}
-                placeholder="e.g. Educational Psychologist"
-                className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                placeholder="Educational Psychologist"
+                className="w-full px-8 py-5 bg-brand-bg border border-brand-primary/5 rounded-[1.5rem] text-sm font-bold focus:outline-none focus:ring-4 focus:ring-brand-accent/5 transition-all text-brand-primary"
               />
             </div>
           </div>
           <button 
             type="submit"
-            className="w-full py-4 bg-brand-900 text-white rounded-2xl font-bold hover:bg-brand-800 transition-all shadow-lg"
+            className="w-full py-6 btn-primary text-xs font-black uppercase tracking-widest shadow-2xl shadow-brand-primary/20"
           >
-            Add to Team
+            Deploy To Matrix
           </button>
         </form>
       </Modal>
@@ -285,50 +316,52 @@ export default function ProfessionalFinder({ onToast }: { onToast: (msg: string)
       <Modal
         isOpen={isManageModalOpen}
         onClose={() => setIsManageModalOpen(false)}
-        title="Manage Team"
+        title="Unit Management"
       >
-        <div className="space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
-          {team.length === 0 ? (
-             <div className="text-center py-12 text-slate-400">
-               <Users size={40} className="mx-auto mb-3 opacity-20" />
-               <p className="text-sm font-medium">No team members added yet.</p>
-             </div>
-          ) : (
-            team.map((person) => (
-              <div key={person.id} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between group">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white rounded-xl border border-slate-200 flex items-center justify-center text-brand-600">
-                    <Users size={20} />
+        <div className="p-10 space-y-10">
+          <div className="space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-4">
+            {team.length === 0 ? (
+               <div className="text-center py-20 text-brand-primary/10">
+                 <Users size={64} strokeWidth={1} className="mx-auto mb-6" />
+                 <p className="text-xs font-black uppercase tracking-widest">No assets active in matrix.</p>
+               </div>
+            ) : (
+              team.map((person) => (
+                <div key={person.id} className="p-6 bg-brand-bg border border-brand-primary/5 rounded-[2rem] flex items-center justify-between group hover:border-brand-accent/20 transition-all">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-white rounded-2xl border border-brand-primary/5 flex items-center justify-center text-brand-accent shadow-sm">
+                      <Users size={24} />
+                    </div>
+                    <div>
+                      <h5 className="text-sm font-black text-brand-primary tracking-tight">{person.name}</h5>
+                      <p className="text-[9px] text-brand-accent font-black uppercase tracking-widest">{person.role}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h5 className="text-sm font-bold text-slate-900">{person.name}</h5>
-                    <p className="text-xs text-slate-500 font-medium">{person.role}</p>
+                  <div className="flex gap-2">
+                    <button className="p-3 text-brand-primary/20 hover:text-brand-primary hover:bg-white rounded-xl transition-all">
+                      <Phone size={18} />
+                    </button>
+                    <button 
+                      onClick={() => removeProf(person.id)}
+                      className="p-3 text-brand-primary/20 hover:text-rose-600 hover:bg-white rounded-xl transition-all"
+                    >
+                      <Trash2 size={18} />
+                    </button>
                   </div>
                 </div>
-                <div className="flex gap-1">
-                  <button className="p-2 text-slate-400 hover:text-brand-600 hover:bg-white rounded-lg transition-all">
-                    <Phone size={16} />
-                  </button>
-                  <button 
-                    onClick={() => removeProf(person.id)}
-                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-white rounded-lg transition-all"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
+              ))
+            )}
+          </div>
+          <button 
+            onClick={() => {
+              setIsManageModalOpen(false);
+              setIsAddModalOpen(true);
+            }}
+            className="w-full py-5 border border-dashed border-brand-primary/10 rounded-[1.5rem] text-brand-primary/20 text-[10px] font-black uppercase tracking-widest hover:bg-brand-bg hover:text-brand-primary transition-all flex items-center justify-center gap-3"
+          >
+            <Plus size={18} /> New Recruitment
+          </button>
         </div>
-        <button 
-          onClick={() => {
-            setIsManageModalOpen(false);
-            setIsAddModalOpen(true);
-          }}
-          className="mt-6 w-full py-4 border border-dashed border-[#EADDD7] rounded-2xl text-slate-400 text-sm font-medium hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
-        >
-          <Plus size={16} /> Add Another
-        </button>
       </Modal>
     </div>
   );

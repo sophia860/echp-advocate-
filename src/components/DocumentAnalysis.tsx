@@ -10,7 +10,10 @@ import {
   Sparkles,
   Info,
   ArrowRight,
-  X
+  X,
+  Plus,
+  Send,
+  MessageSquare
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
@@ -52,29 +55,25 @@ export default function DocumentAnalysis({
 
     const content = doc.content || `Draft EHCP for ${appCase.childName}. Section F provision: "${appCase.childName} will have access to support in the classroom as appropriate to her needs. The school will provide some sensory equipment where possible."`;
     
-    // Run Gemini analysis and Flowr extraction in parallel
     const [result] = await Promise.all([
       analyzeDocument(content, doc.type),
-      // Only run structured extraction if the doc has real uploaded content
       doc.content
         ? extractStructuredData(btoa(new TextEncoder().encode(doc.content).reduce((s, c) => s + String.fromCharCode(c), '')), doc.name)
             .then(fields => {
               if (Object.keys(fields).length > 0) {
-                // Update the doc with structured data
                 const updatedDocs = appCase.docs.map(d =>
                   d.id === doc.id ? { ...d, structuredData: fields } : d
                 );
                 onUpdateDocs(updatedDocs);
               }
             })
-            .catch(() => {}) // silent fail â€” structured extraction is a bonus
+            .catch(() => {})
         : Promise.resolve(),
     ]);
 
     setAnalysisResult(result);
     setIsAnalyzing(false);
 
-    // Store analysis result back on the doc
     if (result) {
       const updatedDocs = appCase.docs.map(d => d.id === doc.id ? { ...d, analysis: result, status: 'reviewed' as const } : d);
       onUpdateDocs(updatedDocs);
@@ -93,7 +92,7 @@ export default function DocumentAnalysis({
     const supported = ['txt', 'pdf', 'doc', 'docx'];
 
     if (!supported.includes(extension || '')) {
-      setExtractionError('Unsupported file type. Please upload a PDF, Word (.docx), or text (.txt) file.');
+      setExtractionError('Unsupported file type. Use PDF, Word, or TXT.');
       return;
     }
 
@@ -102,21 +101,18 @@ export default function DocumentAnalysis({
 
     try {
       const text = await extractTextFromFile(file);
-
       if (!text || text.trim().length === 0) {
-        setExtractionError('No text could be extracted from this file. It may be a scanned image â€” please try a text-based PDF.');
+        setExtractionError('No text found. Possibly a scanned image.');
         setIsExtracting(false);
         return;
       }
-
       setUploadedFileContent(text);
       setNewDocInfo(prev => ({ ...prev, name: file.name }));
       setIsUploadModalOpen(true);
     } catch (err) {
-      setExtractionError('There was a problem reading this file. Please try again or use a .txt file.');
+      setExtractionError('Problem reading file.');
     } finally {
       setIsExtracting(false);
-      // Reset the input so the same file can be re-uploaded if needed
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
@@ -138,8 +134,7 @@ export default function DocumentAnalysis({
   const handleDraftResponse = async () => {
     if (!selectedDoc || !analysisResult) return;
     setIsDraftingResponse(true);
-    const prompt = `Based on this document analysis of ${selectedDoc.name}, draft a formal response letter to the LA. The analysis found: ${analysisResult}. Write a letter in the parent's voice challenging the weaknesses identified.`;
-    const draft = await askNavigator(prompt);
+    const draft = await askNavigator(`Based on this document analysis of ${selectedDoc.name}, draft a formal response letter to the LA. The analysis found: ${analysisResult}. Write a letter in the parent's voice challenging the weaknesses identified.`);
     setDraftResponse(draft);
     setIsDraftingResponse(false);
   };
@@ -153,13 +148,13 @@ export default function DocumentAnalysis({
   };
 
   const statusConfig = {
-    flagged: { label: 'Needs Review', color: 'bg-amber-50 text-amber-700 border-amber-200' },
-    reviewed: { label: 'Reviewed', color: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
-    pending: { label: 'Pending', color: 'bg-slate-50 text-slate-500 border-slate-200' },
+    flagged: { label: 'Flagged', color: 'bg-brand-accent/10 text-brand-accent border-brand-accent/20 px-4' },
+    reviewed: { label: 'Verified', color: 'bg-emerald-50 text-emerald-600 border-emerald-100 px-4' },
+    pending: { label: 'Syncing', color: 'bg-brand-primary/5 text-brand-primary/40 border-brand-primary/10 px-4' },
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full min-h-[600px]">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 h-full min-h-[700px]">
       <input 
         type="file" 
         ref={fileInputRef} 
@@ -167,175 +162,185 @@ export default function DocumentAnalysis({
         accept=".txt,.pdf,.doc,.docx"
         className="hidden" 
       />
-      {/* Left: Document List */}
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold font-display italic tracking-tight">Case Library</h2>
+      
+      {/* Left: Evidence Library */}
+      <div className="lg:col-span-5 space-y-10">
+        <div className="flex justify-between items-end">
+          <div className="space-y-1">
+            <h2 className="text-3xl text-display">File Matrix</h2>
+             <p className="text-[10px] font-black text-brand-primary/30 uppercase tracking-[0.2em]">{appCase.docs.length} assets deployed</p>
+          </div>
           <button 
             onClick={handleUploadClick}
             disabled={isExtracting}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-[#EADDD7] rounded-xl text-sm font-bold shadow-sm hover:bg-slate-50 transition-all disabled:opacity-50"
+            className="btn-primary py-3 px-6 text-[10px] font-black uppercase tracking-widest flex items-center gap-3"
           >
             {isExtracting ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                Reading file...
-              </>
+              <Loader2 size={16} className="animate-spin" />
             ) : (
-              <>
-                <Upload size={16} /> Upload New
-              </>
+              <Plus size={16} />
             )}
+            Add Matrix
           </button>
         </div>
 
         {extractionError && (
           <motion.div
-            initial={{ opacity: 0, y: -8 }}
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="p-4 bg-red-50 border border-red-100 rounded-2xl flex gap-3 items-start"
+            className="p-6 bg-red-50 border border-red-100 rounded-[2rem] flex gap-4 items-start"
           >
-            <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-bold text-red-700">Upload Failed</p>
-              <p className="text-xs text-red-600 mt-0.5">{extractionError}</p>
+            <AlertCircle size={20} className="text-red-500 shrink-0 mt-1" />
+            <div className="flex-1">
+              <p className="text-sm font-black text-red-900 uppercase tracking-tight">Sync Failure</p>
+              <p className="text-xs text-red-600/80 mt-1 leading-relaxed">{extractionError}</p>
             </div>
-            <button
-              onClick={() => setExtractionError(null)}
-              className="ml-auto text-red-300 hover:text-red-500"
-            >
-              <X size={14} />
-            </button>
+            <button onClick={() => setExtractionError(null)} className="text-red-300 hover:text-red-500"><X size={16} /></button>
           </motion.div>
         )}
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           {appCase.docs.map((doc) => (
             <motion.div
               layoutId={doc.id}
               key={doc.id}
               onClick={() => handleAnalyze(doc)}
               className={cn(
-                "p-5 rounded-[2rem] border transition-all cursor-pointer group flex items-center justify-between",
+                "p-8 rounded-[2.5rem] border transition-all cursor-pointer group flex items-center justify-between",
                 selectedDoc?.id === doc.id
-                  ? "bg-brand-900 text-white border-brand-900 shadow-xl shadow-brand-900/20"
-                  : "bg-white border-[#EADDD7] hover:border-brand-300 hover:shadow-md"
+                  ? "bg-brand-primary text-white border-brand-primary shadow-2xl shadow-brand-primary/30"
+                  : "bg-white border-brand-primary/5 hover:border-brand-accent/30 hover:shadow-xl hover:shadow-brand-accent/5"
               )}
             >
-              <div className="flex items-center gap-4 min-w-0">
+              <div className="flex items-center gap-6 min-w-0">
                 <div className={cn(
-                  "w-12 h-12 rounded-[1.25rem] flex items-center justify-center shrink-0",
-                  selectedDoc?.id === doc.id ? "bg-white/10" : "bg-slate-50"
+                  "w-16 h-16 rounded-[1.25rem] flex items-center justify-center shrink-0 transition-colors",
+                  selectedDoc?.id === doc.id ? "bg-white/10" : "bg-brand-bg group-hover:bg-brand-accent/5"
                 )}>
-                  <FileText size={24} className={selectedDoc?.id === doc.id ? "text-white" : "text-brand-600"} />
+                  <FileText 
+                    size={28} 
+                    className={selectedDoc?.id === doc.id ? "text-brand-accent" : "text-brand-primary group-hover:text-brand-accent transition-colors"} 
+                  />
                 </div>
-                  <div className="truncate">
-                    <p className="font-bold text-sm truncate">{doc.name}</p>
-                    <p className={cn(
-                      "text-xs truncate",
-                      selectedDoc?.id === doc.id ? "text-white/60" : "text-slate-400"
-                    )}>
-                      {doc.type} • Uploaded {doc.uploadDate}
-                    </p>
-                    <span className={cn(
-                      "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border mt-1",
-                      selectedDoc?.id === doc.id 
-                        ? "bg-white/20 text-white border-white/30" 
-                        : statusConfig[doc.status].color
-                    )}>
-                      {statusConfig[doc.status].label}
-                      {doc.flagsCount && doc.status === 'flagged' ? ` · ${doc.flagsCount} flags` : ''}
-                    </span>
-                  </div>
+                <div className="truncate">
+                  <p className="text-sm font-black tracking-tight truncate mb-1">{doc.name}</p>
+                  <p className={cn(
+                    "text-[10px] font-bold uppercase tracking-widest truncate",
+                    selectedDoc?.id === doc.id ? "text-white/40" : "text-brand-primary/30"
+                  )}>
+                    {doc.type} • {doc.uploadDate}
+                  </p>
+                  <span className={cn(
+                    "inline-flex items-center py-1 rounded-full text-[9px] font-black uppercase tracking-widest border mt-3 transition-colors",
+                    selectedDoc?.id === doc.id 
+                      ? "bg-white/10 text-white border-white/20" 
+                      : statusConfig[doc.status].color
+                  )}>
+                    {statusConfig[doc.status].label}
+                    {doc.flagsCount && doc.status === 'flagged' ? ` · ${doc.flagsCount} Critical` : ''}
+                  </span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <ChevronRight size={20} className={cn(
-                    "transition-transform",
-                    selectedDoc?.id === doc.id ? "text-white" : "text-slate-300 group-hover:translate-x-1"
-                  )} />
-                </div>
+              </div>
+              <ChevronRight size={24} className={cn(
+                "transition-transform",
+                selectedDoc?.id === doc.id ? "text-white translate-x-2" : "text-brand-primary/10 group-hover:text-brand-accent group-hover:translate-x-1"
+              )} />
             </motion.div>
           ))}
         </div>
 
-        <div className="p-6 bg-blue-50/50 rounded-[2.5rem] border border-blue-100/50 flex gap-4">
-          <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-blue-600 shrink-0 shadow-sm">
-            <Info size={20} />
-          </div>
-          <div>
-            <p className="font-bold text-slate-900 text-sm italic">Pro Tip</p>
-            <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-              Always request EHCP drafts in editable format (Word) if possible. It makes it easier for the AI to analyze specific wording for tribunal preparation.
-            </p>
+        <div className="p-8 bg-brand-primary/95 text-white rounded-[3rem] border border-white/5 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-brand-accent/10 rounded-full -mr-16 -mt-16 group-hover:scale-125 transition-transform duration-700" />
+          <div className="relative z-10 flex gap-6">
+            <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-brand-accent shrink-0">
+               <Info size={24} />
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-black uppercase tracking-[0.2em] text-brand-accent">Strategic Tip</p>
+              <p className="text-xs text-white/50 leading-relaxed font-medium">
+                Draft EHCPs should always be audited for "Quantification Gaps". If it doesn't say WHO, WHEN, and HOW MUCH, it's a legal weakness.
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Right: Analysis Pane */}
-      <div className="relative">
+      {/* Right: Analysis & Intelligence Pane */}
+      <div className="lg:col-span-7 relative h-full">
         <AnimatePresence mode="wait">
           {!selectedDoc ? (
             <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="h-full flex flex-col items-center justify-center p-12 text-center bg-brand-50/30 border border-dashed border-[#EADDD7] rounded-[3rem]"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              className="h-full flex flex-col items-center justify-center p-16 text-center bg-brand-bg/50 border border-dashed border-brand-primary/10 rounded-[4rem]"
             >
-              <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center text-brand-300 mb-6 shadow-sm">
-                <Search size={40} />
+              <div className="w-24 h-24 bg-white rounded-[2rem] flex items-center justify-center text-brand-primary/10 mb-8 card-shadow">
+                <Search size={48} strokeWidth={1} />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Select a document to analyze</h3>
-              <p className="text-slate-500 max-w-sm">The Navigator will read the text and flag potential issues or missing legal compliance items.</p>
+              <h3 className="text-2xl text-display mb-4">Awaiting Data Point</h3>
+              <p className="text-brand-primary/40 max-w-sm text-sm font-medium leading-relaxed uppercase tracking-widest scale-90">
+                Select an asset from the library to initiate deep-scan intelligence analysis.
+              </p>
             </motion.div>
           ) : (
             <motion.div 
                key={selectedDoc.id}
-               initial={{ opacity: 0, x: 20 }}
+               initial={{ opacity: 0, x: 40 }}
                animate={{ opacity: 1, x: 0 }}
-               exit={{ opacity: 0, x: -20 }}
-               className="h-full bg-white rounded-[3rem] border border-[#EADDD7] shadow-xl shadow-brand-900/5 flex flex-col overflow-hidden"
+               exit={{ opacity: 0, x: -40 }}
+               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+               className="h-full bg-white rounded-[4rem] border border-brand-primary/5 shadow-2xl flex flex-col overflow-hidden"
             >
-              <div className="p-8 border-b border-[#EADDD7] flex items-center justify-between">
+              {/* Analysis Header */}
+              <div className="p-10 border-b border-brand-primary/5 flex items-center justify-between glass">
                 <div>
-                  <h3 className="text-lg font-bold truncate max-w-[200px]">{selectedDoc.name}</h3>
-                  <p className="text-xs text-slate-400 font-medium">AI Document Intelligence</p>
+                  <h3 className="text-xl font-bold truncate max-w-md">{selectedDoc.name}</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                    <p className="text-[10px] font-black text-brand-primary/30 uppercase tracking-[0.2em]">Live Intelligence Protocol Active</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                    {isAnalyzing ? (
-                     <span className="flex items-center gap-2 text-brand-600 font-bold text-sm animate-pulse">
-                       <Loader2 size={16} className="animate-spin" /> Analyzing...
-                     </span>
+                     <div className="flex items-center gap-3 px-5 py-2 bg-brand-primary/5 rounded-full">
+                       <Loader2 size={16} className="animate-spin text-brand-primary" />
+                       <span className="text-[10px] font-black text-brand-primary uppercase tracking-widest">Scanning...</span>
+                     </div>
                    ) : (
-                     <span className="flex items-center gap-2 text-emerald-600 font-bold text-sm">
-                       <CheckCircle2 size={16} /> Analysis Complete
-                     </span>
+                      <div className="flex items-center gap-3 px-5 py-2 bg-emerald-50 rounded-full">
+                        <CheckCircle2 size={16} className="text-emerald-500" />
+                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Verified</span>
+                      </div>
                    )}
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+              {/* Analysis Content */}
+              <div className="flex-1 overflow-y-auto p-12 custom-scrollbar space-y-12">
                 {isAnalyzing ? (
-                  <div className="space-y-6">
-                    <div className="h-4 w-1/2 bg-slate-50 rounded animate-pulse" />
-                    <div className="h-32 w-full bg-slate-50 rounded-3xl animate-pulse" />
-                    <div className="h-4 w-2/3 bg-slate-50 rounded animate-pulse" />
-                    <div className="h-32 w-full bg-slate-50 rounded-3xl animate-pulse" />
+                  <div className="space-y-10">
+                    <div className="h-6 w-1/3 bg-brand-bg rounded-xl animate-pulse" />
+                    <div className="space-y-4">
+                      <div className="h-40 w-full bg-brand-bg rounded-[2rem] animate-pulse" />
+                      <div className="h-4 w-5/6 bg-brand-bg rounded-full animate-pulse" />
+                      <div className="h-4 w-4/6 bg-brand-bg rounded-full animate-pulse" />
+                    </div>
                   </div>
                 ) : (
-                  <div className="prose prose-brand prose-sm max-w-none">
+                  <div className="space-y-12">
+                    {/* Structured Extraction Matrix */}
                     {selectedDoc?.structuredData && Object.keys(selectedDoc.structuredData).length > 0 && (
-                      <div className="mb-6 p-5 bg-slate-50 rounded-3xl border border-slate-100">
-                        <p className="font-bold text-slate-500 uppercase tracking-widest text-[10px] mb-3">
-                          Extracted Fields
-                        </p>
-                        <div className="grid grid-cols-2 gap-3">
-                          {Object.entries(selectedDoc.structuredData).slice(0, 8).map(([key, value]) => (
-                            <div key={key} className="bg-white p-3 rounded-2xl border border-slate-100">
-                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                      <div className="space-y-6">
+                        <p className="text-[10px] font-black text-brand-primary/30 uppercase tracking-[0.3em] pl-2">Extracted Matrix</p>
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                          {Object.entries(selectedDoc.structuredData).slice(0, 9).map(([key, value]) => (
+                            <div key={key} className="bg-brand-bg/50 p-6 rounded-[1.5rem] border border-brand-primary/5 group hover:bg-white hover:border-brand-accent/20 transition-all">
+                              <p className="text-[9px] font-black text-brand-primary/40 uppercase tracking-widest mb-2 group-hover:text-brand-accent transition-colors">
                                 {key.replace(/_/g, ' ')}
                               </p>
-                              <p className="text-xs font-bold text-slate-900 truncate" title={value}>
-                                {value || 'â€”'}
+                              <p className="text-xs font-bold text-brand-primary truncate" title={value}>
+                                {value || 'NULL'}
                               </p>
                             </div>
                           ))}
@@ -343,89 +348,101 @@ export default function DocumentAnalysis({
                       </div>
                     )}
                     
-                    <div className="bg-brand-50/50 p-6 rounded-3xl border border-brand-100 mb-8 flex items-start gap-4">
-                      <Sparkles size={24} className="text-brand-600 shrink-0 mt-1" />
-                      <div>
-                        <p className="font-bold text-brand-900 uppercase tracking-widest text-[10px] mb-2">Navigator Summary</p>
-                        <div className="text-slate-700 leading-relaxed font-medium">
-                          <ReactMarkdown>
-                            {analysisResult || "No analysis generated."}
-                          </ReactMarkdown>
-                        </div>
-                      </div>
+                    {/* Main Intelligence Output */}
+                    <div className="space-y-6">
+                       <p className="text-[10px] font-black text-brand-primary/30 uppercase tracking-[0.3em] pl-2">Executive Analysis</p>
+                       <div className="bg-brand-bg p-10 rounded-[2.5rem] border border-brand-primary/5 relative group">
+                          <div className="absolute top-0 right-0 p-6 text-brand-accent/20 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Sparkles size={24} />
+                          </div>
+                          <div className="prose prose-brand prose-sm max-w-none text-brand-primary/80 font-medium leading-relaxed text-brand-primary">
+                            <ReactMarkdown>
+                              {analysisResult || "Awaiting intelligence trigger."}
+                            </ReactMarkdown>
+                          </div>
+                       </div>
                     </div>
 
-                    <div className="space-y-4">
-                      <h4 className="font-bold text-slate-900 flex items-center gap-2">
-                        <AlertCircle size={18} className="text-amber-500" /> Action Required
-                      </h4>
-                      <div className="p-4 bg-white border border-slate-100 rounded-2xl text-sm text-slate-600 leading-relaxed shadow-sm">
-                        One or more sections contain non-statutory language. Request specialized quantification for Section F.
+                    {/* Critical Tasks */}
+                    <div className="space-y-6">
+                      <p className="text-[10px] font-black text-brand-primary/30 uppercase tracking-[0.3em] pl-2">Action Directives</p>
+                      <div className="p-8 bg-brand-accent/5 border border-brand-accent/20 rounded-[2rem] flex gap-6 items-center">
+                        <div className="w-14 h-14 bg-brand-accent text-white rounded-2xl flex items-center justify-center shadow-lg shadow-brand-accent/20">
+                          <AlertCircle size={24} strokeWidth={2.5} />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs font-black text-brand-accent uppercase tracking-widest mb-1">compliance alert</p>
+                          <p className="text-sm font-bold text-brand-primary leading-snug">
+                            Non-statutory language identified in provision clusters. Initiation of challenge outreach recommended.
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
                 )}
               </div>
 
-              <div className="p-6 bg-slate-50/50 border-t border-[#EADDD7] flex flex-col gap-4">
+              {/* Global Actions Bar */}
+              <div className="p-10 glass border-t border-brand-primary/5 grid grid-cols-2 gap-6">
+                <AiButton 
+                  onClick={handleDraftResponse} 
+                  isLoading={isDraftingResponse}
+                  className="py-5 px-8 btn-primary text-xs font-black uppercase tracking-[0.2em]"
+                >
+                  <Send size={18} className="mr-3" /> Execute Draft
+                </AiButton>
+                
                 <div className="grid grid-cols-2 gap-4">
-                  <AiButton 
-                    onClick={handleDraftResponse} 
-                    isLoading={isDraftingResponse}
-                    className="py-3 px-4 w-full"
-                  >
-                    Draft Response
-                  </AiButton>
                   <button 
-                    onClick={() => onToast("✓ Added to tribunal bundle")}
-                    className="py-3 px-4 bg-white border border-[#EADDD7] text-slate-700 rounded-2xl text-sm font-bold hover:bg-white hover:border-brand-300 transition-all flex items-center justify-center gap-2"
+                    onClick={() => onToast("✓ Resource Committed")}
+                    className="py-5 bg-white border border-brand-primary/5 text-brand-primary rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-brand-bg transition-colors flex items-center justify-center gap-2"
                   >
-                    Add to Bundle
+                    Commit File
                   </button>
+                  {selectedDoc?.type === 'Draft Plan' && (
+                    <button 
+                      onClick={handleScanProvision}
+                      className="py-5 bg-brand-accent/5 border border-brand-accent/10 text-brand-accent rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-brand-accent/10 transition-colors"
+                    >
+                      Audit Sec. F
+                    </button>
+                  )}
                 </div>
-                {selectedDoc.type === 'Draft Plan' && (
-                  <AiButton 
-                    onClick={handleScanProvision} 
-                    isLoading={isScanningProvision}
-                    className="py-3 px-4 w-full bg-white border border-brand-200 text-brand-700 hover:bg-brand-50 shadow-none"
-                  >
-                    Scan Section F (Quantification)
-                  </AiButton>
-                )}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
+      {/* Modals */}
       <Modal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
-        title="Upload Document"
+        title="Deploy New Evidence"
       >
-        <div className="space-y-6">
-          <div className="p-4 bg-brand-50 border border-brand-100 rounded-2xl flex gap-3">
-            <Info size={20} className="text-brand-600 shrink-0" />
-            <p className="text-xs text-brand-800 leading-relaxed font-medium">
-              PDF and Word files are fully supported. Text has already been extracted and is ready to analyse.
+        <div className="p-10 space-y-10">
+          <div className="p-6 bg-brand-accent/5 border border-brand-accent/10 rounded-[1.5rem] flex gap-4">
+            <Sparkles size={24} className="text-brand-accent shrink-0" />
+            <p className="text-xs text-brand-accent/80 leading-relaxed font-black uppercase tracking-widest">
+              Intelligence engine primed. File text extracted. Ready for legal sync.
             </p>
           </div>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Document Name</label>
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-brand-primary/30 uppercase tracking-[0.3em] pl-2">Asset Label</label>
               <input 
                 type="text" 
                 value={newDocInfo.name}
                 onChange={e => setNewDocInfo({ ...newDocInfo, name: e.target.value })}
-                className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                className="w-full px-8 py-5 bg-brand-bg border border-brand-primary/5 rounded-[1.5rem] text-sm font-bold focus:outline-none focus:ring-4 focus:ring-brand-accent/5"
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Document Type</label>
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-brand-primary/30 uppercase tracking-[0.3em] pl-2">Asset Classification</label>
               <select 
                 value={newDocInfo.type}
                 onChange={e => setNewDocInfo({ ...newDocInfo, type: e.target.value })}
-                className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 appearance-none"
+                className="w-full px-8 py-5 bg-brand-bg border border-brand-primary/5 rounded-[1.5rem] text-sm font-bold focus:outline-none appearance-none cursor-pointer"
               >
                 <option value="Draft Plan">Draft Plan</option>
                 <option value="LA Letter">LA Letter</option>
@@ -435,9 +452,9 @@ export default function DocumentAnalysis({
           </div>
           <button 
             onClick={confirmUpload}
-            className="w-full py-4 bg-brand-900 text-white rounded-2xl font-bold hover:bg-brand-800 transition-all shadow-lg"
+            className="w-full py-6 btn-primary text-xs font-black uppercase tracking-widest"
           >
-            Confirm & Analyze
+            Initiate Matrix Sync
           </button>
         </div>
       </Modal>
@@ -445,52 +462,56 @@ export default function DocumentAnalysis({
       <Modal
         isOpen={!!draftResponse}
         onClose={() => setDraftResponse(null)}
-        title="Draft Response Letter"
+        title="Intelligence Draft"
       >
-        <div className="prose prose-sm max-w-none">
-          <ReactMarkdown>{draftResponse || ''}</ReactMarkdown>
+        <div className="p-10 space-y-10">
+          <div className="bg-brand-bg p-10 rounded-[3rem] border border-brand-primary/5 prose prose-brand prose-sm max-w-none text-brand-primary">
+            <ReactMarkdown>{draftResponse || ''}</ReactMarkdown>
+          </div>
+          <button 
+            onClick={() => {
+              navigator.clipboard.writeText(draftResponse || '');
+              onToast("✓ Data Copied");
+              setDraftResponse(null);
+            }}
+            className="btn-accent w-full py-6 text-xs font-black uppercase tracking-widest shadow-2xl shadow-brand-accent/20"
+          >
+            Copy Intelligence Data
+          </button>
         </div>
-        <button 
-          onClick={() => {
-            navigator.clipboard.writeText(draftResponse || '');
-            onToast("✓ Copied to clipboard");
-            setDraftResponse(null);
-          }}
-          className="mt-8 w-full py-4 bg-brand-900 text-white rounded-2xl font-bold hover:bg-brand-800 flex items-center justify-center gap-2"
-        >
-          Copy to Clipboard
-        </button>
       </Modal>
 
       <Modal
         isOpen={!!provisionScanResult}
         onClose={() => setProvisionScanResult(null)}
-        title="Section F Provision Scan"
+        title="Section F Auditor"
       >
-        <div className="space-y-4">
-          <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl flex gap-3">
-             <AlertCircle size={20} className="text-amber-600 shrink-0" />
-             <p className="text-xs text-amber-800 font-medium italic">
-               LA's often use "vague language" to avoid committing resources. Statutory provision must be specific and quantified.
+        <div className="p-10 space-y-10">
+          <div className="p-6 bg-brand-accent/5 border border-brand-accent/10 rounded-[2rem] flex gap-4">
+             <AlertCircle size={24} className="text-brand-accent shrink-0" />
+             <p className="text-xs text-brand-primary/60 font-bold uppercase tracking-widest leading-relaxed">
+               Quantification Audit Active. StatutotrySEND_2015 benchmarks in effect.
              </p>
           </div>
-          <div className="prose prose-sm max-w-none">
+          <div className="bg-brand-bg p-10 rounded-[3rem] border border-brand-primary/5 prose prose-brand prose-sm max-w-none text-brand-primary shadow-sm">
             <ReactMarkdown>{provisionScanResult || ''}</ReactMarkdown>
           </div>
           <button 
             onClick={() => setProvisionScanResult(null)}
-            className="mt-6 w-full py-4 bg-brand-900 text-white rounded-2xl font-bold hover:bg-brand-800"
+            className="w-full py-6 btn-primary text-xs font-black uppercase tracking-widest"
           >
-            Finished Review
+            Acknowledge Findings
           </button>
         </div>
       </Modal>
 
       <style>{`
-        .prose h1, .prose h2, .prose h3 { margin-top: 1.5em; margin-bottom: 0.5em; font-weight: 700; color: #1e293b; }
-        .prose p { margin-bottom: 1em; }
-        .prose ul { margin-bottom: 1em; padding-left: 1.5em; list-style-type: disc; }
-        .prose li { margin-bottom: 0.5em; }
+        .prose h1, .prose h2, .prose h3 { margin-top: 1.5em; margin-bottom: 0.5em; font-weight: 900; color: #0A2540; text-transform: uppercase; letter-spacing: -0.01em; }
+        .prose p { margin-bottom: 1em; color: rgba(10, 37, 64, 0.8) !important; font-weight: 500; }
+        .prose strong { color: #0A2540; font-weight: 900; }
+        .prose ul { margin-bottom: 1em; padding-left: 1.5em; list-style-type: none; }
+        .prose li { margin-bottom: 0.8rem; position: relative; padding-left: 1.5rem; color: rgba(10, 37, 64, 0.8); }
+        .prose li::before { content: "•"; position: absolute; left: 0; color: #FF6200; font-weight: 900; }
       `}</style>
     </div>
   );

@@ -79,21 +79,21 @@ export default function App() {
   };
 
   const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'documents', label: 'Documents', icon: FileText },
-    { id: 'chat', label: 'Navigator Chat', icon: MessageSquare },
-    { id: 'comms', label: 'Communications', icon: Send },
-    { id: 'professionals', label: 'Team', icon: Users },
-    { id: 'tribunal', label: 'Tribunal Prep', icon: Gavel },
+    { id: 'dashboard', label: 'Command', icon: LayoutDashboard },
+    { id: 'documents', label: 'Evidence', icon: FileText },
+    { id: 'chat', label: 'Aide', icon: MessageSquare },
+    { id: 'comms', label: 'Outreach', icon: Send },
+    { id: 'professionals', label: 'Alliance', icon: Users },
+    { id: 'tribunal', label: 'Prep', icon: Gavel },
   ];
 
   useEffect(() => {
     const tabLabel = tabs.find(t => t.id === activeTab)?.label ?? 'Navigator';
-    document.title = `${tabLabel} — ${appCase.childName}'s Case | EHCP Navigator`;
+    document.title = `${tabLabel} — ${appCase.childName} | EHCP Navigator`;
   }, [activeTab, appCase.childName]);
 
   return (
-    <div className="flex h-screen bg-[#FDF8F6] text-slate-900 overflow-hidden font-sans">
+    <div className="flex h-screen bg-brand-bg text-brand-primary overflow-hidden font-sans selection:bg-brand-accent/30">
       <AnimatePresence>
         {!isSidebarOpen && (
           <motion.div 
@@ -101,171 +101,180 @@ export default function App() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsSidebarOpen(true)}
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden"
+            className="fixed inset-0 bg-brand-primary/40 backdrop-blur-sm z-40 lg:hidden"
           />
         )}
       </AnimatePresence>
 
+      {/* Sidebar: The Control Column */}
       <motion.aside 
         initial={false}
-        animate={{ width: isSidebarOpen ? 280 : 80 }}
+        animate={{ width: isSidebarOpen ? 300 : 96 }}
         className={cn(
-          "bg-white border-r border-[#EADDD7] flex flex-col z-50 transition-all duration-300 relative shrink-0",
+          "bg-brand-primary text-white flex flex-col z-50 transition-all duration-500 relative shrink-0",
           !isSidebarOpen && "items-center"
         )}
       >
-        <div className="p-6 flex items-center gap-3 h-20">
-          <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center text-white shrink-0">
-            <Gavel size={20} />
+        <div className="p-10 flex items-center gap-4 h-28 relative">
+           <div className="w-12 h-12 bg-white/10 backdrop-blur-xl rounded-2xl flex items-center justify-center border border-white/10 shrink-0">
+            <Gavel className="text-brand-accent" size={28} />
           </div>
           {isSidebarOpen && (
-            <span className="font-display italic font-bold text-xl tracking-tight text-brand-900 truncate">
+            <span className="text-display text-2xl tracking-tight translate-y-1">
               Navigator
             </span>
           )}
         </div>
 
-        <nav className="flex-1 px-3 space-y-1">
+        <nav className="flex-1 px-4 space-y-2 mt-4">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative text-left",
+                "w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] transition-all duration-300 group relative text-left",
                 activeTab === tab.id 
-                  ? "bg-brand-50 text-brand-700 font-bold" 
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                  ? "bg-white/10 text-white shadow-lg" 
+                  : "text-white/40 hover:text-white"
               )}
             >
-              <tab.icon size={22} className={cn(
-                "shrink-0",
-                activeTab === tab.id ? "text-brand-600" : "group-hover:text-slate-900"
+              <tab.icon size={24} className={cn(
+                "shrink-0 transition-transform group-hover:scale-110",
+                activeTab === tab.id ? "text-brand-accent" : ""
               )} />
               {isSidebarOpen && (
-                <span className="text-sm">{tab.label}</span>
+                <span className="text-[13px] font-bold uppercase tracking-[0.2em]">{tab.label}</span>
               )}
               {!isSidebarOpen && (
-                <span className="absolute left-full ml-3 px-3 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-lg">
+                <span className="absolute left-full ml-6 px-4 py-2 bg-brand-primary border border-white/10 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-50 shadow-2xl">
                   {tab.label}
                 </span>
               )}
               {activeTab === tab.id && (
                 <motion.div 
-                  layoutId="activeTab"
-                  className="absolute left-0 w-1 h-6 bg-brand-600 rounded-r-full"
+                  layoutId="activeBar"
+                  className="absolute left-0 w-1 h-8 bg-brand-accent rounded-r-full"
                 />
               )}
             </button>
           ))}
         </nav>
 
-        <div className="p-4 border-t border-[#EADDD7]">
+        <div className="p-8 space-y-6">
+           <div className={cn(
+            "p-5 bg-white/5 rounded-3xl border border-white/5 flex items-center gap-4 transition-all hover:bg-white/10 group cursor-pointer",
+            !isSidebarOpen && "p-0 bg-transparent border-0"
+          )}>
+            <div className="w-12 h-12 rounded-2xl bg-brand-bg flex items-center justify-center text-brand-primary font-bold overflow-hidden border-2 border-brand-accent shrink-0 group-hover:scale-105 transition-transform">
+              <img src="https://picsum.photos/seed/sarah-navigator/100/100" alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            </div>
+            {isSidebarOpen && (
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold truncate">Sarah</p>
+                <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest truncate">Case Lead</p>
+              </div>
+            )}
+          </div>
+          
           <button 
             onClick={() => setIsSettingsOpen(true)}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-3 rounded-xl text-slate-500 hover:bg-slate-50 transition-colors",
+              "w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-white/40 hover:text-white hover:bg-white/5 transition-all",
               !isSidebarOpen && "justify-center"
             )}
           >
             <Settings size={22} />
-            {isSidebarOpen && <span className="text-sm font-medium">Settings</span>}
+            {isSidebarOpen && <span className="text-[10px] font-black uppercase tracking-[0.2em]">Context</span>}
           </button>
-          
-          <div className={cn(
-            "mt-4 p-3 bg-brand-50 rounded-2xl border border-brand-100 flex items-center gap-3",
-            !isSidebarOpen && "hidden"
-          )}>
-            <div className="w-10 h-10 rounded-full bg-brand-200 flex items-center justify-center text-brand-800 font-bold overflow-hidden border-2 border-white shrink-0">
-              <img src="https://picsum.photos/seed/user/100/100" alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold truncate">Parent: Sarah</p>
-              <p className="text-xs text-brand-600 truncate">Maya's Advocate</p>
-            </div>
-          </div>
         </div>
 
         <button 
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="absolute -right-3 top-24 w-6 h-6 bg-white border border-[#EADDD7] rounded-full flex items-center justify-center text-slate-400 hover:text-brand-600 shadow-sm transition-colors hidden lg:flex"
+          className="absolute -right-4 top-24 w-8 h-8 bg-brand-primary border border-white/10 rounded-full flex items-center justify-center text-white/40 hover:text-brand-accent shadow-xl transition-all hidden lg:flex active:scale-95"
         >
-          {isSidebarOpen ? <X size={12} /> : <Menu size={12} />}
+          {isSidebarOpen ? <X size={14} /> : <Menu size={14} />}
         </button>
       </motion.aside>
 
-      <main className="flex-1 flex flex-col min-w-0 bg-[#FDF8F6] relative h-full">
-        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-[#EADDD7] flex items-center justify-between px-8 shrink-0">
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold text-slate-900">
-              {tabs.find(t => t.id === activeTab)?.label}
-            </h1>
-            <div className="px-3 py-1 bg-brand-100 text-brand-700 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-brand-500 rounded-full animate-pulse" />
-              Child: {appCase.childName}
+      <main className="flex-1 flex flex-col min-w-0 bg-brand-bg relative h-full">
+        <header className="h-28 glass border-b border-brand-primary/5 flex items-center justify-between px-12 shrink-0 z-30">
+          <div className="flex items-center gap-8">
+            <div className="space-y-1">
+              <h1 className="text-3xl text-display">
+                {tabs.find(t => t.id === activeTab)?.label}
+              </h1>
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                <span className="text-[10px] font-black text-brand-primary/40 uppercase tracking-[0.2em]">Case Verified • {appCase.childName}</span>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="relative group hidden md:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-600 transition-colors" size={18} />
+          <div className="flex items-center gap-6">
+            <div className="relative group hidden xl:block">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-primary/20 group-focus-within:text-brand-accent transition-colors" size={20} />
               <input 
                 type="text" 
-                placeholder="Search case files..." 
-                className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all w-64"
+                placeholder="Query file matrix..." 
+                className="pl-12 pr-6 py-4 bg-brand-primary/5 border border-transparent rounded-2xl text-xs font-bold focus:outline-none focus:ring-4 focus:ring-brand-accent/5 focus:bg-white focus:border-brand-accent/20 transition-all w-80"
               />
             </div>
+            
             <div className="relative">
               <button 
                 onClick={() => setShowNotifications(!showNotifications)}
                 className={cn(
-                  "p-2.5 text-slate-500 hover:bg-slate-50 rounded-xl relative transition-colors",
-                  showNotifications && "bg-slate-100 text-brand-600"
+                  "w-14 h-14 bg-white border border-brand-primary/5 shadow-sm text-brand-primary/40 hover:text-brand-primary hover:bg-brand-bg rounded-2xl relative transition-all flex items-center justify-center",
+                  showNotifications && "bg-brand-primary text-white"
                 )}
               >
-                <Bell size={20} />
+                <Bell size={24} />
                 {notifications.length > 0 && (
-                  <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
+                  <span className="absolute top-4 right-4 w-2.5 h-2.5 bg-brand-accent rounded-full border-2 border-white shadow-[0_0_8px_rgba(255,98,0,0.5)]" />
                 )}
               </button>
 
               <AnimatePresence>
                 {showNotifications && (
                   <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    initial={{ opacity: 0, y: 20, scale: 0.9 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute right-0 mt-2 w-80 bg-white border border-[#EADDD7] rounded-3xl shadow-xl z-50 overflow-hidden"
+                    exit={{ opacity: 0, y: 20, scale: 0.9 }}
+                    className="absolute right-0 mt-6 w-96 bg-white border border-brand-primary/5 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] z-50 overflow-hidden"
                   >
-                    <div className="p-4 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Notifications</span>
+                    <div className="p-8 bg-brand-bg/50 flex items-center justify-between border-b border-brand-primary/5">
+                      <span className="text-xs font-black text-brand-primary/40 uppercase tracking-[0.2em]">Live Feed</span>
                       {notifications.length > 0 && (
                         <button 
                           onClick={() => setNotifications([])}
-                          className="text-[10px] text-brand-600 font-bold hover:underline"
+                          className="text-[10px] text-brand-accent font-black uppercase tracking-widest hover:underline"
                         >
-                          Clear all
+                          Clear Sync
                         </button>
                       )}
                     </div>
-                    <div className="max-h-96 overflow-y-auto">
+                    <div className="max-h-[500px] overflow-y-auto custom-scrollbar">
                       {notifications.length > 0 ? (
                         notifications.map(n => (
-                          <div key={n.id} className="p-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 group flex items-start gap-4">
+                          <div key={n.id} className="p-8 border-b border-brand-primary/5 last:border-0 hover:bg-brand-bg transition-colors group flex items-start gap-6">
+                            <div className="w-10 h-10 bg-brand-accent/5 rounded-xl flex items-center justify-center text-brand-accent shrink-0 group-hover:scale-110 transition-transform">
+                               {n.text.includes('🔴') ? <AlertCircle size={20} /> : <Clock size={20} />}
+                            </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium text-slate-800 leading-relaxed">{n.text}</p>
-                              <p className="text-[10px] text-slate-400 mt-1">{n.time}</p>
+                              <p className="text-sm font-bold text-brand-primary leading-relaxed">{n.text.replace(/🔴|⏰|✅ /g, '')}</p>
+                              <p className="text-[10px] font-black text-brand-primary/30 uppercase tracking-widest mt-2">{n.time} • Global Server {n.id}</p>
                             </div>
                             <button 
                               onClick={() => dismissNotification(n.id)}
-                              className="text-slate-300 hover:text-brand-600 p-1"
+                              className="text-brand-primary/10 hover:text-red-500 p-2 transition-colors"
                             >
-                              <X size={14} />
+                              <X size={16} />
                             </button>
                           </div>
                         ))
                       ) : (
-                        <div className="p-8 text-center">
-                          <p className="text-sm text-slate-400 font-medium italic">No new notifications</p>
+                        <div className="p-16 text-center">
+                          <p className="text-sm text-brand-primary/30 font-bold italic">Matrix is clear</p>
                         </div>
                       )}
                     </div>
@@ -273,24 +282,25 @@ export default function App() {
                 )}
               </AnimatePresence>
             </div>
+
             <button 
               onClick={() => setIsAddResourceOpen(true)}
-              className="px-4 py-2 bg-brand-900 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm hover:bg-brand-800 transition-all active:scale-95 shrink-0"
+              className="btn-accent flex items-center gap-3 px-8 text-xs font-black uppercase tracking-widest"
             >
-              <Plus size={18} />
-              <span className="hidden sm:inline">Add Resource</span>
+              <Plus size={20} />
+              <span className="hidden sm:inline">Add Intent</span>
             </button>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-12 custom-scrollbar relative z-10">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
+              exit={{ opacity: 0, y: -30 }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
               className="h-full"
             >
               {activeTab === 'dashboard' && (
@@ -313,6 +323,7 @@ export default function App() {
                   appCase={appCase} 
                   onAddComm={(comm) => setAppCase(prev => ({ ...prev, comms: [comm, ...prev.comms] }))}
                   onUpdateComm={(updatedComm) => setAppCase(prev => ({ ...prev, comms: prev.comms.map(c => c.id === updatedComm.id ? updatedComm : c) }))}
+                  onToast={showToast}
                 />
               )}
               {activeTab === 'professionals' && (
@@ -331,17 +342,17 @@ export default function App() {
         </div>
       </main>
 
-      {/* Global Modals */}
+      {/* Global Context Modals */}
       <Modal 
         isOpen={isAddResourceOpen} 
         onClose={() => setIsAddResourceOpen(false)} 
-        title="Add New Resource"
+        title="Deploy New Intent"
       >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4">
           {[
-            { id: 'documents', title: 'Upload Document', desc: 'Analyse reports or letters', icon: FileText, color: 'bg-blue-50 text-blue-600' },
-            { id: 'professionals', title: 'Add Professional', desc: 'Find independent experts', icon: Users, color: 'bg-emerald-50 text-emerald-600' },
-            { id: 'comms', title: 'Draft Letter', desc: 'Generate AI responses', icon: Send, color: 'bg-brand-50 text-brand-600' },
+            { id: 'documents', title: 'File Matrix', desc: 'Analyse and lock evidence', icon: FileText, color: 'bg-brand-primary/5 text-brand-primary' },
+            { id: 'professionals', title: 'Alliance', desc: 'Secure independent experts', icon: Users, color: 'bg-emerald-50 text-emerald-600' },
+            { id: 'comms', title: 'Outreach', desc: 'Command AI response system', icon: Send, color: 'bg-brand-accent/5 text-brand-accent' },
           ].map((option) => (
             <button
               key={option.id}
@@ -349,13 +360,13 @@ export default function App() {
                 setActiveTab(option.id);
                 setIsAddResourceOpen(false);
               }}
-              className="p-6 rounded-[2rem] border border-slate-100 hover:border-brand-200 hover:bg-brand-50/30 transition-all text-left group"
+              className="p-10 rounded-[3rem] border border-brand-primary/5 bg-brand-bg hover:bg-brand-accent hover:border-brand-accent transition-all duration-500 text-left group shadow-sm hover:shadow-2xl hover:shadow-brand-accent/30 hover:-translate-y-2"
             >
-              <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform", option.color)}>
-                <option.icon size={24} />
+              <div className={cn("w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-6 group-hover:bg-white group-hover:scale-110 transition-all", option.color)}>
+                <option.icon size={32} />
               </div>
-              <h4 className="font-bold text-slate-900 mb-1">{option.title}</h4>
-              <p className="text-xs text-slate-500 leading-relaxed">{option.desc}</p>
+              <h4 className="text-xl font-bold text-brand-primary group-hover:text-white mb-2">{option.title}</h4>
+              <p className="text-xs text-brand-primary/40 group-hover:text-white/60 leading-relaxed font-bold uppercase tracking-widest scale-90 -translate-x-2">{option.desc}</p>
             </button>
           ))}
         </div>
@@ -364,56 +375,40 @@ export default function App() {
       <Modal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
-        title="Settings"
+        title="Case Context"
       >
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Child's Name</label>
+        <div className="space-y-10 p-6">
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-brand-primary/30 uppercase tracking-[0.3em] pl-2">Subject Name</label>
             <input 
               type="text" 
               value={appCase.childName}
               onChange={(e) => setAppCase(prev => ({ ...prev, childName: e.target.value }))}
-              className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+              className="w-full px-8 py-5 bg-brand-bg border border-brand-primary/5 rounded-[1.5rem] text-sm font-bold focus:outline-none focus:ring-4 focus:ring-brand-accent/5 focus:border-brand-accent/20"
             />
           </div>
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Local Authority</label>
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-brand-primary/30 uppercase tracking-[0.3em] pl-2">Local Authority (Region)</label>
             <input 
               type="text" 
               value={appCase.laName}
               onChange={(e) => setAppCase(prev => ({ ...prev, laName: e.target.value }))}
-              className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+              className="w-full px-8 py-5 bg-brand-bg border border-brand-primary/5 rounded-[1.5rem] text-sm font-bold focus:outline-none focus:ring-4 focus:ring-brand-accent/5 focus:border-brand-accent/20"
             />
           </div>
           <button 
             onClick={() => {
               setIsSettingsOpen(false);
-              showToast("✓ Settings saved");
+              showToast("✓ Records Updated");
             }}
-            className="w-full py-4 bg-brand-900 text-white rounded-2xl font-bold hover:bg-brand-800 transition-all shadow-lg shadow-brand-900/10"
+            className="w-full py-6 btn-primary text-xs font-black uppercase tracking-widest shadow-2xl"
           >
-            Save Changes
+            Commit Changes
           </button>
         </div>
       </Modal>
 
       <Toast message={toast.message} isVisible={toast.isVisible} />
-
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #EADDD7;
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #D2BAB0;
-        }
-      `}</style>
     </div>
   );
 }
