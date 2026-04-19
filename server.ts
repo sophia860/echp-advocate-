@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import { askNavigator, analyzeDocument, scanProvision, getNextSteps } from "./src/lib/gemini.js";
+import { runSwarm } from "./src/lib/agents/orchestrator.js";
 
 dotenv.config();
 
@@ -22,9 +23,30 @@ async function startServer() {
       return res.status(500).json({ error: "Gemini API key not configured on server" });
     }
 
-    const { action, prompt, history, docContent, docType, appCase } = req.body;
+    const { action, prompt, history, docContent, docType, appCase, task, context, priorLessons } = req.body;
 
     try {
+      // The runSwarm action returns a structured payload (result + trace +
+      // usage), not a single string, so it short-circuits the switch below.
+      if (action === "runSwarm") {
+        if (typeof task !== "string" || !task.trim()) {
+          return res.status(400).json({ error: "runSwarm requires a non-empty task string" });
+        }
+        if (context !== undefined && typeof context !== "string") {
+          return res.status(400).json({ error: "runSwarm context must be a string when provided" });
+        }
+        if (priorLessons !== undefined && !Array.isArray(priorLessons)) {
+          return res.status(400).json({ error: "runSwarm priorLessons must be an array when provided" });
+        }
+        const swarm = await runSwarm(task, {
+          context: typeof context === "string" ? context : undefined,
+          priorLessons: Array.isArray(priorLessons)
+            ? priorLessons.filter((l: unknown): l is string => typeof l === "string")
+            : undefined,
+        });
+        return res.json(swarm);
+      }
+
       let result: string;
       switch (action) {
         case "askNavigator":
