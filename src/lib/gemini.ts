@@ -1,6 +1,15 @@
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const getAiClient = () => {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    console.warn("GEMINI_API_KEY is not configured. AI features will be unavailable.");
+    return null;
+  }
+  return new GoogleGenAI({ apiKey });
+};
+
+const ai = getAiClient();
 
 const SYSTEM_PROMPT = `
 You are the EHCP Navigator AI — a specialist case companion for 
@@ -31,6 +40,7 @@ Always write in the parent's voice (warm but firm) when drafting letters.
 `;
 
 export async function askNavigator(prompt: string, history: { role: string; parts: { text: string }[] }[] = []) {
+  if (!ai) return "AI services are currently offline. Please configure the GEMINI_API_KEY.";
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -50,6 +60,7 @@ export async function askNavigator(prompt: string, history: { role: string; part
 }
 
 export async function analyzeDocument(docContent: string, docType: string) {
+  if (!ai) return "AI analysis is offline. Configure GEMINI_API_KEY.";
   const prompt = `
 Analyse this ${docType} in the context of an EHCP case.
 
@@ -80,6 +91,7 @@ ${docContent}
 }
 
 export async function scanProvision(docContent: string) {
+  if (!ai) return "AI scanner offline. Configure GEMINI_API_KEY.";
   const prompt = `
     Focus ONLY on Section F (Provision) of this EHCP draft.
     Identify all instances of non-statutory "vague wording".
@@ -118,6 +130,7 @@ export async function scanProvision(docContent: string) {
 }
 
 export async function getNextSteps(appCase: any) {
+  if (!ai) return "Please manually review deadlines. (AI Offline)";
   const prompt = `
     Based on the following case data, suggest the top 3 high-priority "Next Steps" for the parent.
     
