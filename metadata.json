@@ -1,6 +1,10 @@
 {
-  "name": "EHCP Navigator AI",
-  "description": "An AI-powered case companion for families navigating the UK's Education, Health and Care Plan (EHCP) process. Helps analyze documents, draft communications, and prepare for tribunals with expert SEND knowledge.",
+  "name": "Echo Advocate",
+  "description": "A warm, parent-first EHCP companion for SEN families — designed to feel like an advocate who believes in your child and helps organise evidence, reviews, and tribunal prep.",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": [
+    "Warm landing experience",
+    "Child-centred dashboard preview",
+    "Encouraging advocate-style guidance"
+  ]
 }
